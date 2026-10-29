@@ -22,6 +22,8 @@ export class TransferredHandler implements ICoinEventHandler {
     }
 
     const fromBalance = await storage.getAccountBalance(from, coin);
+    // Curve tokens: the launchpad and the pool hold supply but are not holders.
+    const counts = (address: string) => !(coin.excludedHolders ?? []).includes(address);
 
     storage.addTransfer(
       new Transfer({
@@ -44,7 +46,7 @@ export class TransferredHandler implements ICoinEventHandler {
       fromBalance.balance += amount;
       const toBalance = await storage.getAccountBalance(to, coin);
 
-      if (toBalance.balance === BigInt(0)) {
+      if (toBalance.balance === BigInt(0) && counts(to)) {
         coin.holders += 1;
       }
 
@@ -63,7 +65,7 @@ export class TransferredHandler implements ICoinEventHandler {
 
       const toBalance = await storage.getAccountBalance(to, coin);
 
-      if (toBalance.balance === BigInt(0)) {
+      if (toBalance.balance === BigInt(0) && counts(to)) {
         coin.holders += 1;
       }
 
@@ -81,7 +83,7 @@ export class TransferredHandler implements ICoinEventHandler {
       }
     }
 
-    if (fromBalance.balance === BigInt(0)) {
+    if (fromBalance.balance === BigInt(0) && from !== NullAddress && counts(from)) {
       coin.holders -= 1;
     }
 

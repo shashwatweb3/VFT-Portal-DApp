@@ -33,6 +33,7 @@
 		"framer-motion": "12.34.5",
 		"framer-motion-ticker": "1.0.19",
 		"jotai": "2.18.0",
+		"lightweight-charts": "5.1.0",
 		"lucide-react": "0.576.0",
 		"next": "16.1.6",
 		"react": "19.2.4",
@@ -44,6 +45,8 @@
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
+		"@eslint/eslintrc": "^3.3.4",
+		"@eslint/js": "^9.39.3",
 		"@next/bundle-analyzer": "16.1.6",
 		"@tailwindcss/forms": "0.5.11",
 		"@tailwindcss/postcss": "4.2.1",
@@ -62,6 +65,7 @@
 		"prettier": "3.8.1",
 		"prettier-plugin-tailwindcss": "0.7.2",
 		"pretty-quick": "4.2.2",
+		"sails-js-cli": "0.5.1",
 		"tailwind-merge": "3.5.0",
 		"tailwind-scrollbar": "4.0.2",
 		"tailwindcss": "4.2.1",
@@ -73,6 +77,9 @@
 		"onlyBuiltDependencies": [
 			"@parcel/watcher",
 			"sharp"
-		]
+		],
+		"patchedDependencies": {
+			"@gear-js/react-hooks@0.19.1": "patches/@gear-js__react-hooks@0.19.1.patch"
+		}
 	}
 }

@@ -77,6 +77,11 @@ export async function getDnsService(dnsApiUrl: string): Promise<DnsService> {
     return instance;
   }
   instance = new DnsService(dnsApiUrl);
-  await instance.init();
+  if (dnsApiUrl === "off") return instance;
+  try {
+    await instance.init();
+  } catch (e) {
+    console.warn(`[dns] init failed, continuing without DNS`, e);
+  }
   return instance;
 }

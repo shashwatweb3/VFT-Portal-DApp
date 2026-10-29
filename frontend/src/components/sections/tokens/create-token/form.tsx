@@ -8,18 +8,25 @@ import { Input } from '@/components/ui/input'
 import {
 	createTokenDefault,
 	createTokenSchema,
+	createCurveTokenSchema,
 	ICreateTokenForm,
 } from '@/components/sections/tokens/create-token/schema'
+import { SegmentedControl } from '@/components/sections/tokens/curve/segmented-control'
+import { launchpadEnabled } from '@/lib/sails/use-launchpad'
+import { TooltipContainer } from '@/components/ui/tooltip'
+import { Sprite } from '@/components/ui/sprite'
 import { InputArea } from '@/components/ui/InputArea'
 import { useAtom } from 'jotai'
 
-import { dataTokenAtom, stepAtom } from '.'
+import { dataTokenAtom, launchModeAtom, stepAtom, type LaunchMode } from '.'
 import { cn } from '@/lib/utils'
 import { BackButton } from '@/components/common/back-button'
 
 export const CreateForm = () => {
-	const [step, setStep] = useAtom(stepAtom)
+	const [, setStep] = useAtom(stepAtom)
 	const [dataToken, setDataToken] = useAtom(dataTokenAtom)
+	const [mode, setMode] = useAtom(launchModeAtom)
+	const curve = mode === 'curve' && launchpadEnabled()
 
 	const {
 		handleSubmit,
@@ -31,7 +38,8 @@ export const CreateForm = () => {
 	} = useForm<ICreateTokenForm>({
 		mode: 'onChange',
 		defaultValues: dataToken || createTokenDefault,
-		resolver: zodResolver(createTokenSchema),
+		// The curve path fixes decimals and supply in the launchpad, so those fields are not validated.
+		resolver: zodResolver((curve ? createCurveTokenSchema.omit({ first_buy: true, accept_terms: true }) : createTokenSchema) as never),
 	})
 
 	const [max_supply, initial_supply, decimals, image] = watch([
@@ -104,6 +112,16 @@ export const CreateForm = () => {
 							</li>
 						</ol>
 					</div>
+					{launchpadEnabled() && (
+						<SegmentedControl<LaunchMode>
+							value={mode}
+							onChange={setMode}
+							options={[
+								{ value: 'curve', label: 'Launch on curve', hint: 'gas-sponsored · lists on RivrDEX' },
+								{ value: 'classic', label: 'Classic VFT', hint: 'you set supply and roles' },
+							]}
+						/>
+					)}
 					<h3 className="text-center uppercase">Token Details</h3>
 					<form
 						className="font-poppins flex flex-col gap-5"
@@ -139,6 +157,7 @@ export const CreateForm = () => {
 									)}
 								/>
 							</div>
+							{!curve && (
 							<div className="flex w-full flex-col gap-2">
 								<Controller
 									name="decimals"
@@ -163,7 +182,21 @@ export const CreateForm = () => {
 									)}
 								/>
 							</div>
+							)}
 						</div>
+						{curve && (
+							<div className="flex items-center gap-2 text-sm text-[#A4AAB6]">
+								Supply 1,000,000,000 · 18 decimals · fixed by the curve
+								<TooltipContainer
+									trigger={<Sprite name="question" className="size-4 text-[#FDFDFD]/[40%]" />}
+									delay={0}
+								>
+									<p className="max-w-60 text-center">
+										80 % of the supply is sold on the bonding curve; 20 % is reserved for the RivrDEX pool. Every mint, burn and admin role is renounced at graduation.
+									</p>
+								</TooltipContainer>
+							</div>
+						)}
 
 						<div className="flex flex-col gap-2">
 							<label htmlFor="image-upload" className="font-poppins text-sm">
@@ -184,6 +217,7 @@ export const CreateForm = () => {
 							)}
 						</div>
 
+						{!curve && (
 						<div className="flex justify-between gap-5 max-sm:flex-col">
 							<div className="flex w-full flex-col gap-2">
 								<Controller
@@ -234,6 +268,7 @@ export const CreateForm = () => {
 								/>
 							</div>
 						</div>
+						)}
 
 						<div className="flex justify-between gap-5 max-sm:flex-col">
 							<div className="flex w-full flex-col gap-2">

@@ -1,4 +1,4 @@
-import { AccountBalance, Coin, Factory } from "../../model";
+import { AccountBalance, Coin, CurveCandle, CurveLaunch, Factory } from "../../model";
 import { Store } from "@subsquid/typeorm-store";
 import { IStorage } from "./storage.inteface";
 import { readFileSync } from "fs";
@@ -26,6 +26,9 @@ export class LocalStorage implements IStorage {
   private coins: Record<string, Coin> = {};
   // address-coin -> AccountBalance
   private accounts: Record<string, AccountBalance> = {};
+  // token -> CurveLaunch, candle id -> CurveCandle (per batch, like `accounts`)
+  private launches: Record<string, CurveLaunch> = {};
+  private candles: Record<string, CurveCandle> = {};
 
   constructor(private store: Store) {}
 
@@ -49,6 +52,8 @@ export class LocalStorage implements IStorage {
     this.store = store;
     this.coins = {};
     this.accounts = {};
+    this.launches = {};
+    this.candles = {};
   }
 
   async getCoin(address: string): Promise<Coin | undefined> {
@@ -86,6 +91,28 @@ export class LocalStorage implements IStorage {
   async updateAccountBalance(balance: AccountBalance): Promise<void> {
     const key = `${balance.address}-${balance.coin.id}`;
     this.accounts[key] = balance;
+  }
+
+  async getCurveLaunch(token: string): Promise<CurveLaunch | undefined> {
+    if (this.launches[token] !== undefined) return this.launches[token];
+    const found = await this.store.findOne(CurveLaunch, { where: { id: token }, relations: { coin: true } });
+    if (found) this.launches[token] = found;
+    return found;
+  }
+
+  updateCurveLaunch(launch: CurveLaunch): void {
+    this.launches[launch.id] = launch;
+  }
+
+  async getCurveCandle(id: string): Promise<CurveCandle | undefined> {
+    if (this.candles[id] !== undefined) return this.candles[id];
+    const found = await this.store.findOne(CurveCandle, { where: { id } });
+    if (found) this.candles[id] = found;
+    return found;
+  }
+
+  updateCurveCandle(candle: CurveCandle): void {
+    this.candles[candle.id] = candle;
   }
 
   private async loadEntities() {

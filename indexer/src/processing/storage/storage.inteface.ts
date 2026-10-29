@@ -1,4 +1,4 @@
-import { AccountBalance, Coin, Factory } from "../../model";
+import { AccountBalance, Coin, CurveCandle, CurveLaunch, Factory } from "../../model";
 
 export interface IStorage {
   getFactory(): Factory;
@@ -14,4 +14,9 @@ export interface IStorage {
     contract: string
   ): Promise<AccountBalance | undefined>;
   updateAccountBalance(balance: AccountBalance): Promise<void>;
+
+  getCurveLaunch(token: string): Promise<CurveLaunch | undefined>;
+  updateCurveLaunch(launch: CurveLaunch): void;
+  getCurveCandle(id: string): Promise<CurveCandle | undefined>;
+  updateCurveCandle(candle: CurveCandle): void;
 }

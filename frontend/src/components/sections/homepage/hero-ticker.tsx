@@ -2,6 +2,7 @@
 
 import Ticker from 'framer-motion-ticker'
 import Link from 'next/link'
+import { CURVE_ENABLED } from '@/lib/consts'
 
 type Props = {
 	className?: string
@@ -22,7 +23,7 @@ export function HeroTicker({}: Props) {
 				{Array.from({ length: 10 }).map((_, i) => (
 					<p key={i} className="ml-12.5">
 						Launch your token · Memecoins · Utility tokens · DAO tokens · Reward
-						tokens · DeFi · Vara Network
+						tokens · {CURVE_ENABLED ? 'Bonding curve · Lists on RivrDEX · ' : 'DeFi · '}Vara Network
 					</p>
 				))}
 			</Ticker>

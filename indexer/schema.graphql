@@ -34,6 +34,89 @@ type Coin @entity {
   timestamp: DateTime! @index
   balances: [AccountBalance!]! @derivedFrom(field: "coin")
   transfers: [Transfer!]! @derivedFrom(field: "coin")
+  "CLASSIC for factory VFTs, CURVE for launchpad tokens"
+  kind: CoinKind! @index
+  "Addresses whose balances are not holders (the launchpad, then the RivrDEX pair)"
+  excludedHolders: [String!]!
+  curveLaunch: CurveLaunch @derivedFrom(field: "coin")
+}
+
+enum CoinKind {
+  CLASSIC
+  CURVE
+}
+
+enum CurveStatus {
+  TRADING
+  STUCK
+  READY
+  GRADUATING
+  GRADUATED
+  FAILED
+  ABORTED
+}
+
+type CurveLaunch @entity {
+  "Token (VFT) address"
+  id: ID!
+  coin: Coin! @unique
+  creator: String! @index
+  status: CurveStatus! @index
+  v0: BigInt!
+  t0: BigInt!
+  curveSupply: BigInt!
+  poolTokens: BigInt!
+  raiseTargetVara: BigInt!
+  sold: BigInt!
+  escrow: BigInt!
+  priceE18: BigInt!
+  progressBps: Int!
+  volumeVara: BigInt!
+  feesVara: BigInt!
+  tradeCount: Int!
+  lastSeq: Int!
+  gradStep: String
+  failReason: String
+  pair: String
+  poolVara: BigInt
+  lpBurned: BigInt
+  rolesRenounced: Boolean
+  graduatedAt: DateTime
+  createdAt: DateTime! @index
+  updatedAt: DateTime! @index
+  trades: [CurveTrade!]! @derivedFrom(field: "launch")
+  candles: [CurveCandle!]! @derivedFrom(field: "launch")
+}
+
+type CurveTrade @entity {
+  "<token>-<seq>"
+  id: ID!
+  launch: CurveLaunch! @index
+  seq: Int!
+  side: String!
+  trader: String! @index
+  vara: BigInt!
+  tokens: BigInt!
+  fee: BigInt!
+  priceAfterE18: BigInt!
+  soldAfter: BigInt!
+  blockNumber: Int! @index
+  timestamp: DateTime! @index
+}
+
+type CurveCandle @entity {
+  "<token>-<interval>-<bucketStartMs>"
+  id: ID!
+  launch: CurveLaunch! @index
+  "Bucket size in seconds: 60, 300, 3600, 86400"
+  interval: Int! @index
+  bucketStart: DateTime! @index
+  open: BigInt!
+  high: BigInt!
+  low: BigInt!
+  close: BigInt!
+  volumeVara: BigInt!
+  trades: Int!
 }
 
 type AccountBalance @entity {

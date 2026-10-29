@@ -1,0 +1,297 @@
+/// Config that will be used to send messages to the other programs.
+type Config = struct {
+  /// Gas limit for token operations. Token operations include:
+  /// - Mint
+  /// - Burn
+  /// - TransferFrom
+  gas_for_token_ops: u64,
+  /// Gas to reserve for reply processing.
+  gas_for_reply_deposit: u64,
+  /// Timeout in blocks that current program will wait for reply from
+  /// the other programs such as VFT
+  reply_timeout: u32,
+  gas_for_full_tx: u64,
+};
+
+type LockState = enum {
+  Free,
+  /// Normal in-flight operation: no pause, but we have full context.
+  Busy: LockCtx,
+  /// Contract is paused; keep the same context for recovery.
+  Paused: LockCtx,
+};
+
+type LockCtx = enum {
+  /// remove_liquidity: we are doing sequential payouts. Stage tells where we are.
+  RemLiq: struct {
+    user: actor_id,
+    liquidity: u256,
+    amount_a: u256,
+    amount_b: u256,
+    stage: SendTokenStage,
+  },
+  /// swap: refund needs to be retried
+  SwapRefund: struct {
+    user: actor_id,
+    token: actor_id,
+    amount: u256,
+  },
+  /// add_liquidity: refund needs to be retried
+  AddLiqRefund: struct {
+    user: actor_id,
+    token: actor_id,
+    amount: u256,
+  },
+  MigrateAllLiquidity: struct {
+    target: actor_id,
+    amount0: u256,
+    amount1: u256,
+    stage: SendTokenStage,
+  },
+  TreasuryPayout: struct {
+    treasury: actor_id,
+    amount0: u256,
+    amount1: u256,
+    stage: SendTokenStage,
+  },
+  AdminPause,
+};
+
+type SendTokenStage = enum {
+  SendToken0,
+  SendToken1,
+};
+
+/// State in which message processing can be.
+type MessageStatus = enum {
+  SendingMsgToLockTokenA,
+  /// Reply is received for a token deposit message.
+  TokenALocked: bool,
+  SendingMsgToLockTokenB,
+  /// Reply is received for a token deposit message.
+  TokenBLocked: bool,
+  /// Message to refund tokens is sent.
+  SendingMessageToReturnTokensA,
+  /// Reply is received for a token refund message.
+  TokensAReturnComplete: bool,
+  SendingMsgToTransferTokenIn,
+  TokenInTransfered: bool,
+  SendingMsgToTransferTokenOut,
+  TokenOutTransfered: bool,
+  SendingMessageToReturnTokenIn,
+  TokenInReturnComplete: bool,
+  SendingMsgToUnlockTokenA,
+  /// Reply is received for a token deposit message.
+  TokenAUnlocked: bool,
+  SendingTreasuryTokenA,
+  SendingTreasuryTokenB,
+  TreasuryTokenASent: bool,
+  TreasuryTokenBSent: bool,
+  SendingMsgToUnlockTokenB,
+  /// Reply is received for a token deposit message.
+  TokenBUnlocked: bool,
+};
+
+constructor {
+  New : (config: Config, token0: actor_id, token1: actor_id, fee_to: actor_id, treasury_id: actor_id, admin_id: actor_id);
+};
+
+service Pair {
+  AddLiquidity : (amount_a_desired: u256, amount_b_desired: u256, amount_a_min: u256, amount_b_min: u256, deadline: u64) -> null;
+  ChangeFeeTo : (new_fee_to: actor_id) -> null;
+  ChangeTreasuryId : (new_treasury_id: actor_id) -> null;
+  ClearMsgTracker : () -> null;
+  /// Migrates all pool liquidity and accrued treasury fees to a target address.
+  /// 
+  /// After migration:
+  /// - `reserve0`, `reserve1`, `k_last`,
+  ///   `accrued_treasury_fee0`, `accrued_treasury_fee1` are reset to zero.
+  /// 
+  /// NOTE:
+  /// - Intended for final pool shutdown / migration to a new contract.
+  /// - Should be callable only by an admin
+  MigrateAllLiquidity : (target: actor_id) -> null;
+  RecoverPaused : () -> null;
+  RemoveAdmin : (account: actor_id) -> null;
+  /// Removes liquidity from the AMM pool
+  /// 
+  /// # Parameters
+  /// * `liquidity` - Amount of LP tokens to burn
+  /// * `amount_a_min` - Minimum amount of token A to receive (slippage protection)
+  /// * `amount_b_min` - Minimum amount of token B to receive (slippage protection)
+  /// * `deadline` - Timestamp after which the transaction is considered invalid
+  /// 
+  /// # Algorithm
+  /// 1. Validates deadline and user's LP token balance
+  /// 2. Mints accumulated protocol fees (modifies state permanently)
+  /// 3. Calculates proportional amounts of tokens A and B to return
+  /// 4. Validates amounts against minimum thresholds
+  /// 5. Burns user's LP tokens and transfers underlying tokens back
+  /// 6. Updates pool reserves
+  RemoveLiquidity : (liquidity: u256, amount_a_min: u256, amount_b_min: u256, deadline: u64) -> null;
+  RemoveMsgStatus : (msg_id: message_id) -> null;
+  SendTreasuryFees : () -> null;
+  SetAdmin : (account: actor_id) -> null;
+  SetLock : (lock: LockState) -> null;
+  /// Swaps an exact amount of input tokens for as many output tokens as possible in a single pair.
+  /// Direction is specified by is_token0_to_token1 (true for token0 -> token1, false for token1 -> token0).
+  /// Combines high-level swap logic with low-level swap execution for a single-contract setup.
+  /// # Arguments
+  /// * `amount_in` - Exact amount of input token to swap
+  /// * `amount_out_min` - Minimum amount of output token expected (slippage protection)
+  /// * `is_token0_to_token1` - Direction of swap (true: token0 to token1, false: token1 to token0)
+  /// * `deadline` - Unix timestamp after which the transaction will revert
+  SwapExactTokensForTokens : (amount_in: u256, amount_out_min: u256, is_token0_to_token1: bool, deadline: u64) -> null;
+  /// Swaps as few input tokens as possible for an exact amount of output tokens in a single pair.
+  /// Direction is specified by is_token0_to_token1 (true for token0 -> token1, false for token1 -> token0).
+  /// Combines high-level swap logic with low-level swap execution for a single-contract setup.
+  /// # Arguments
+  /// * `amount_out` - Exact amount of output token desired
+  /// * `amount_in_max` - Maximum amount of input token willing to pay (slippage protection)
+  /// * `is_token0_to_token1` - Direction of swap (true: token0 to token1, false: token1 to token0)
+  /// * `deadline` - Unix timestamp after which the transaction will revert
+  SwapTokensForExactTokens : (amount_out: u256, amount_in_max: u256, is_token0_to_token1: bool, deadline: u64) -> null;
+  UpdateConfig : (config: Config) -> null;
+  /// Calculates accumulated swap fees for a specific LP provider.
+  /// 
+  /// Similar to calculate_lp_fee, but returns the share of LP fees for a user with a given
+  /// LP token balance (pro-rata based on `user_lp_balance / total_supply`). Returns 0 if no growth.
+  query CalculateLpUserFee : (user: actor_id) -> u256;
+  /// Calculates protocol fees for the liquidity pool, similar to Uniswap V2, without minting.
+  /// 
+  /// This function checks if protocol fees are enabled (via `fee_to` address) and calculates
+  /// the growth in pool reserves due to accumulated swap fees (0.3% per swap, with 1/6 or
+  /// 0.05% going to the protocol). Returns the amount of new liquidity tokens (LP tokens)
+  /// that would be minted to the `fee_to` address, proportional to the increase in the square root
+  /// of the constant product (`reserve0 * reserve1`). If protocol fees are disabled or no growth,
+  /// returns 0.
+  /// 
+  /// Can be called for estimation or off-chain calculations. Does not modify state.
+  query CalculateProtocolFee : () -> u256;
+  /// Calculates the amounts of token A and B a user would receive when removing liquidity.
+  /// 
+  /// This function simulates the removal of liquidity by burning a given amount of LP tokens.
+  /// It accounts for protocol fees (by simulating mint_fee dilution), calculates pro-rata shares
+  /// based on reserves (assuming they include swap fees), and sorts amounts by token_a/token_b.
+  /// Does not modify state or perform any transactions.
+  query CalculateRemoveLiquidity : (liquidity: u256) -> struct { u256, u256 };
+  /// Calculates the required input amount for a desired output, given current reserves,
+  /// including both the internal 0.3% swap fee (Uniswap-style) and the optional
+  /// treasury fee in the input token.
+  /// 
+  /// - First, the function determines how much must actually enter the pool
+  ///   (`amount_in_for_pool`) using the standard Uniswap 0.3% math.
+  /// - Then, if treasury fee is enabled, it computes a higher total input
+  ///   `amount_in_total` such that:
+  ///       amount_in_for_pool = amount_in_total * (1 - treasury_fee_bps / 10_000)
+  ///   and the difference `amount_in_total - amount_in_for_pool` is the treasury fee.
+  /// - If treasury is disabled, the result matches classic Uniswap V2
+  ///   `getAmountIn` with 0.3% fee.
+  /// 
+  /// # Arguments
+  /// * `amount_out` - Desired amount of output asset
+  /// * `is_token0_to_token1` - Direction of swap (true: token0 to token1, false: token1 to token0)
+  query GetAmountIn : (amount_out: u256, is_token0_to_token1: bool) -> u256;
+  /// Calculates the expected output amount for a swap, given the input amount and
+  /// current reserves, including both the internal 0.3% swap fee (Uniswap-style)
+  /// and the optional treasury fee in the input token.
+  /// Uses floor division
+  /// 
+  /// - If `treasury` is configured (non-zero address), the input is split into:
+  ///     * a small part reserved as treasury fee (e.g. 0.05%), and
+  ///     * the remaining part that actually enters the pool and is priced
+  ///       with the Uniswap V2 formula (0.3% fee via 997/1000 multiplier).
+  /// - If `treasury` is not configured (zero address), the behavior matches
+  ///   the classic Uniswap V2 `getAmountOut` with 0.3% fee.
+  /// 
+  /// # Arguments
+  /// * `amount_in` - Amount of input asset being swapped
+  /// * `is_token0_to_token1` - Direction of swap (true: token0 to token1, false: token1 to token0)
+  query GetAmountOut : (amount_in: u256, is_token0_to_token1: bool) -> u256;
+  query GetReserves : () -> struct { u256, u256 };
+  query GetTokens : () -> struct { actor_id, actor_id };
+  /// Returns basic treasury info:
+  /// - treasury address,
+  /// - accrued fee in token0,
+  /// - accrued fee in token1.
+  query GetTreasuryInfo : () -> struct { actor_id, u256, u256 };
+  query Lock : () -> LockState;
+  query Migrated : () -> bool;
+  query MsgsInMsgTracker : () -> vec struct { message_id, MessageStatus };
+  query TreasuryId : () -> actor_id;
+
+  events {
+    LiquidityAdded: struct {
+      user_id: actor_id,
+      amount_a: u256,
+      amount_b: u256,
+      liquidity: u256,
+    };
+    Swap: struct {
+      user_id: actor_id,
+      amount_in: u256,
+      amount_out: u256,
+      is_token0_to_token1: bool,
+    };
+    LiquidityRemoved: struct {
+      user_id: actor_id,
+      amount_a: u256,
+      amount_b: u256,
+      liquidity: u256,
+    };
+    TreasuryFeesCollected: struct {
+      treasury_id: actor_id,
+      amount_a: u256,
+      amount_b: u256,
+    };
+    LiquidityMigrated: struct {
+      to: actor_id,
+      amount0: u256,
+      amount1: u256,
+    };
+    NoLiquidityToMigrate;
+  }
+};
+
+service Vft {
+  AllocNextAllowancesShard : () -> bool;
+  AllocNextBalancesShard : () -> bool;
+  AppendAllowancesShard : (capacity: u32) -> null;
+  AppendBalancesShard : (capacity: u32) -> null;
+  Approve : (spender: actor_id, value: u256) -> bool;
+  Pause : () -> null;
+  Resume : () -> null;
+  Transfer : (to: actor_id, value: u256) -> bool;
+  TransferFrom : (from: actor_id, to: actor_id, value: u256) -> bool;
+  query Allowance : (owner: actor_id, spender: actor_id) -> u256;
+  query BalanceOf : (account: actor_id) -> u256;
+  query Decimals : () -> u8;
+  query IsPaused : () -> bool;
+  query Name : () -> str;
+  query Symbol : () -> str;
+  query TotalSupply : () -> u256;
+
+  events {
+    Approval: struct {
+      owner: actor_id,
+      spender: actor_id,
+      value: u256,
+    };
+    Transfer: struct {
+      from: actor_id,
+      to: actor_id,
+      value: u256,
+    };
+    Minted: struct {
+      to: actor_id,
+      value: u256,
+    };
+    Burned: struct {
+      from: actor_id,
+      value: u256,
+    };
+    Paused;
+    Resumed;
+  }
+};
+

@@ -34,7 +34,7 @@ export function VaraBalance({ className }: Props) {
 		<div className={cn(styles.balance, className)}>
 			<p className={styles.text}>
 				<span className={styles.value}>{balance.value}</span>
-				<span className={styles.unit}>{balance.unit}</span>
+				<span className={styles.unit}>VARA</span>
 			</p>
 		</div>
 	) : null

@@ -2,7 +2,7 @@ import { EntitiesService } from "../entities.service";
 import { EventInfo } from "../event-info.type";
 import { MemeCreatedEvent } from "../../types/factory.events";
 import { IFactoryEventHandler } from "./factory.handler";
-import { Coin } from "../../model";
+import { Coin, CoinKind } from "../../model";
 
 export class MemeCreatedHandler implements IFactoryEventHandler {
   async handle(
@@ -58,6 +58,8 @@ export class MemeCreatedHandler implements IFactoryEventHandler {
       maxSupply,
       createdBy: admin || eventInfo.destination,
       timestamp: eventInfo.timestamp,
+      kind: CoinKind.CLASSIC,
+      excludedHolders: [],
     });
     await storage.setCoin(coin);
     const balance = await storage.getAccountBalance(admin, coin);

@@ -1,0 +1,21 @@
+[package]
+name = "test-proxy"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# Test-only program: forwards a call and relays the reply, standing in for a program account
+# (e.g. a multisig treasury) that calls the launchpad.
+[dependencies]
+gstd.workspace = true
+parity-scale-codec = { workspace = true, features = ["derive"] }
+
+[build-dependencies]
+sails-rs = { workspace = true, features = ["build"] }
+
+[features]
+wasm-binary = []
+
+[lints]
+workspace = true

@@ -12,6 +12,8 @@ import { getCoinEventsParser } from "./types/coin.events";
 import { isSailsEvent, isUserMessageSentEvent } from "./utils";
 import { getDnsService } from "./dns/dns.service";
 import { config } from "./config";
+import { getLaunchpadEventsParser } from "./types/launchpad.events";
+import { LaunchpadHandler } from "./processing/launchpad/launchpad.handler";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
@@ -46,10 +48,13 @@ processor.run(
   const memeFactoryParser = await getMemeFactoryEventsParser();
   const coinParser = await getCoinEventsParser();
 
+  const launchpad = config.launchpadProgram;
   const processing = new EventsProcessing(
     entitiesService,
     memeFactoryParser,
-    coinParser
+    coinParser,
+    launchpad ? await getLaunchpadEventsParser() : undefined,
+    launchpad ? new LaunchpadHandler(launchpad) : undefined
   );
 
   const firstBlockDate = getBlockDate(ctx.blocks[0]);
@@ -84,6 +89,8 @@ processor.run(
 
       if (factory.address === source || factory.id === source) {
         await processing.handleFactoryEvent(payload, eventInfo);
+      } else if (launchpad && source === launchpad) {
+        await processing.handleLaunchpadEvent(payload, eventInfo);
       } else {
         const coin = await localStorage.getCoin(source);
 

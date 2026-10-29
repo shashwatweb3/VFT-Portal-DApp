@@ -65,6 +65,15 @@ export const coinsTypesTableColumns: ColumnDef<Token>[] = [
 		enableSorting: false,
 	},
 	{
+		accessorFn: (row) => row.kind,
+		id: 'status',
+		cell: (info) => <CoinStatus token={info.row.original} />,
+		header: () => (
+			<div className="group flex items-center justify-center">Status</div>
+		),
+		enableSorting: false,
+	},
+	{
 		accessorFn: (row) => row.initialSupply,
 		id: 'initialSupply',
 		cell: (info) => (
@@ -165,6 +174,55 @@ function TokenId(id: `0x${string}`) {
 			>
 				<Sprite name="copy" size={16} />
 			</button>
+		</div>
+	)
+}
+
+/** "On curve" + mini progress bar, "Graduated", or "Classic". */
+export function CoinStatus({ token }: { token: Token }) {
+	const launch = token.curveLaunch
+	if (token.kind !== 'CURVE' || !launch) {
+		return (
+			<div className="flex justify-center">
+				<span className="font-ps2p w-max rounded-sm border border-[#2E3B55] p-1 text-[8px] uppercase text-[#FDFDFD]/80">
+					Classic
+				</span>
+			</div>
+		)
+	}
+	const OTHER: Record<string, string> = {
+		READY: 'Curve complete',
+		GRADUATING: 'Graduating',
+		FAILED: 'Paused',
+		ABORTED: 'Sell-back',
+	}
+	if (OTHER[launch.status]) {
+		return (
+			<div className="flex justify-center">
+				<span className="font-ps2p w-max rounded-sm bg-white p-1 text-[8px] uppercase text-black">
+					{OTHER[launch.status]}
+				</span>
+			</div>
+		)
+	}
+	if (launch.status === 'GRADUATED') {
+		return (
+			<div className="flex justify-center">
+				<span className="font-ps2p bg-primary w-max rounded-sm p-1 text-[8px] uppercase text-black">
+					Graduated
+				</span>
+			</div>
+		)
+	}
+	const pct = Math.min(100, launch.progressBps / 100)
+	return (
+		<div className="flex flex-col items-center gap-1">
+			<span className="font-ps2p w-max rounded-sm bg-white p-1 text-[8px] uppercase text-black">
+				On curve
+			</span>
+			<div className="h-1.5 w-20 overflow-hidden rounded-full bg-[#2E3B55]">
+				<div className="bg-primary h-full rounded-full" style={{ width: `${pct}%` }} />
+			</div>
 		</div>
 	)
 }

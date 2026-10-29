@@ -57,7 +57,8 @@ const twitterLinkSchema = z
 	.union([twitterUrl, twitterUsername, z.literal('')])
 	.superRefine(handleUnionError)
 
-export const createTokenSchema = z
+/** Field rules shared by both launch modes; cross-field checks live on each mode's schema. */
+const tokenFields = z
 	.object({
 		name: z
 			.string()
@@ -132,6 +133,8 @@ export const createTokenSchema = z
 				.transform((value) => value ?? null)
 		),
 	})
+
+export const createTokenSchema = tokenFields
 	.refine((data) => data.decimals && data.decimals > 0, {
 		message: 'Decimals cannot be less than 0',
 		path: ['decimals'],
@@ -179,3 +182,36 @@ export const createTokenDefault: ICreateTokenForm = {
 	initial_supply: null,
 	max_supply: null,
 }
+
+/** Curve launches fix supply and decimals in the launchpad; the creator may add a first buy. */
+export const createCurveTokenSchema = tokenFields
+	.omit({ decimals: true, initial_supply: true, max_supply: true })
+	.extend({
+		first_buy: z
+			.string()
+			.regex(/^\d*(\.\d{0,12})?$/, { message: 'Enter a VARA amount' })
+			.optional()
+			.or(z.literal('')),
+		accept_terms: z.boolean().refine((v) => v, { message: 'Please accept the terms' }),
+	})
+
+export type ICreateCurveTokenForm = z.infer<typeof createCurveTokenSchema>
+
+export const createCurveTokenDefault: ICreateCurveTokenForm = {
+	name: '',
+	symbol: '',
+	image: null,
+	description: '',
+	external_links: {
+		website: '',
+		telegram: '',
+		twitter: '',
+		discord: '',
+		tokenomics: '',
+	},
+	first_buy: '',
+	accept_terms: false,
+}
+
+/** The wizard keeps one form state; classic-only fields are simply unused on the curve path. */
+export type ICreateAnyTokenForm = ICreateTokenForm & Partial<Pick<ICreateCurveTokenForm, 'first_buy' | 'accept_terms'>>

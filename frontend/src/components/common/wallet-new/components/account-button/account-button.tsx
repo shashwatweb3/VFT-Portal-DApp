@@ -2,6 +2,7 @@ import Identicon from '@polkadot/react-identicon'
 import cx from 'clsx'
 
 import styles from './account-button.module.scss'
+import { prettyWord } from '@/lib/utils'
 
 type Props = {
 	name: string | undefined
@@ -17,9 +18,10 @@ function AccountButton({ address, name, className, onClick }: Props) {
 			color="dark"
 			className={cx(styles.button, className)}
 			onClick={onClick}
+			title={name ? `${name} · ${address}` : address}
 		>
 			<Identicon value={address} size={16} theme="polkadot" />
-			<span>{name}</span>
+			<span>{address ? prettyWord(address, 4) : name}</span>
 		</button>
 	)
 }

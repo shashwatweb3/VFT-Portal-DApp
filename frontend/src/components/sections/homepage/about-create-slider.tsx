@@ -1,5 +1,7 @@
 'use client'
 
+import { CURVE_ENABLED } from '@/lib/consts'
+
 import { ReactNode, useCallback, useEffect, useState } from 'react'
 import {
 	Carousel,
@@ -178,22 +180,35 @@ export function AboutCreateSlider() {
 	)
 }
 
-const dataBullets = ['Give it a name', 'Set symbol & decimals', 'Add a logo']
+const dataBullets = CURVE_ENABLED
+	? ['Name & logo', 'Trade on the curve', 'Graduate to RivrDEX']
+	: ['Give it a name', 'Set symbol & decimals', 'Add a logo']
 
 const dataImages: [StaticImageData[], ReactNode][] = [
 	[
 		[Slide1, Slide1x2, Slide1Webp, Slide1x2Webp],
-		"Pick a name that fits your vision - whether it's a community meme, a project brand, or a DAO governance token. Something people will remember.",
+		CURVE_ENABLED
+			? 'Pick a name, a ticker and a logo. Curve launches fix the supply at 1,000,000,000 tokens, so there is nothing else to set.'
+			: "Pick a name that fits your vision - whether it's a community meme, a project brand, or a DAO governance token. Something people will remember.",
 	],
 	[
 		[Slide2, Slide2x2, Slide2Webp, Slide2x2Webp],
-		'Set your ticker symbol, initial supply, and decimal precision. These parameters are baked into your smart contract - choose what works for your use case.',
+		CURVE_ENABLED
+			? 'People buy and sell on a bonding curve: every buy moves the price up a little. 1 % of each trade is a fee, half of it to you as the creator.'
+			: 'Set your ticker symbol, initial supply, and decimal precision. These parameters are baked into your smart contract - choose what works for your use case.',
 	],
 	[
 		[Slide3, Slide3x2, Slide3Webp, Slide3x2Webp],
-		<>
-			Upload a logo that represents your token. A clear, recognizable icon makes
-			your token easy to spot on wallets and DEX listings.
-		</>,
+		CURVE_ENABLED ? (
+			<>
+				When the curve sells out, the VARA it raised (minus fees) and 20 % of the supply go
+				into a RivrDEX pool. The LP tokens are burned and every token role is renounced.
+			</>
+		) : (
+			<>
+				Upload a logo that represents your token. A clear, recognizable icon makes your token
+				easy to spot on wallets and DEX listings.
+			</>
+		),
 	],
 ]

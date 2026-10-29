@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Sprite } from '@/components/ui/sprite'
 import { SOCIALS } from '@/lib/data/socials'
 import { cn } from '@/lib/utils'
+import { CURVE_ENABLED } from '@/lib/consts'
 
 export function Footer() {
 	return (
@@ -82,6 +83,7 @@ const LINKS = [
 				title: 'All Tokens',
 				url: '/tokens',
 			},
+			...(CURVE_ENABLED ? [{ title: 'Curve Launches', url: '/tokens?filter=curve' }] : []),
 			{
 				title: 'My Tokens',
 				url: '/tokens/my',
@@ -110,6 +112,14 @@ const LINKS = [
 			{
 				title: 'IDEA',
 				url: 'https://idea.gear-tech.io',
+			},
+			{
+				title: 'Terms',
+				url: '/terms',
+			},
+			{
+				title: 'Privacy',
+				url: '/privacy',
 			},
 		],
 	},

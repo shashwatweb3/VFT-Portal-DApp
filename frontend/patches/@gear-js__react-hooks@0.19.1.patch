@@ -1,0 +1,13 @@
+diff --git a/dist/index.js b/dist/index.js
+index d2f1588899f207bd07ad635f8e1d238513e2c9ad..7eb41bbfe3e2cf88f8e2abef289e37fcf07fcc15 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -156,7 +156,7 @@ const S = () => J(ie), _e = 200, ce = {
+ }, L = {
+   WALLET_IDS: "walletIds",
+   ACCOUNT_ADDRESS: "accountAddress"
+-}, Z = (e, n, t) => t.filter(({ type: s }) => s !== "ethereum").map(({ address: s, name: r, genesisHash: o, type: c }) => {
++}, Z = (e, n, t) => t.filter(({ type: s }) => s === void 0 || s === "sr25519" || s === "ed25519" || s === "ecdsa").map(({ address: s, name: r, genesisHash: o, type: c }) => {
+   const i = new te({ type: c }), a = De(i.decodeAddress(s));
+   return {
+     address: i.encodeAddress(a, se),

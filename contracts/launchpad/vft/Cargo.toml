@@ -1,0 +1,19 @@
+[package]
+name = "tokenator-vft"
+version.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+tokenator-vft-app = { path = "app" }
+
+[build-dependencies]
+tokenator-vft-app = { path = "app" }
+sails-rs = { workspace = true, features = ["build"] }
+
+[features]
+wasm-binary = []
+
+[lints]
+workspace = true

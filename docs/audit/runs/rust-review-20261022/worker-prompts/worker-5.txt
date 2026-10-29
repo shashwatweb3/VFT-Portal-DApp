@@ -1,0 +1,58 @@
+You are a rust-review worker on a parallel Rust security review.
+Follow the protocol in your system prompt verbatim.
+
+Output directory: /Users/adityakrx/VFT-Portal-DApp/docs/audit/runs/rust-review-20261022
+Finding scope root: contracts/launchpad — finding locations MUST be inside this subtree.
+Context roots: . — read-only context for reachability, callers, wrappers, build settings, mitigations, and threat-model details. Do not file findings outside the finding scope.
+Scope root: contracts/launchpad — legacy alias for Finding scope root.
+Threat model: REMOTE
+Severity filter: all
+Codebase: has_unsafe=false, has_ffi=false, has_concurrency=false, has_async=true, has_packed_repr=false, has_fs_io=true
+
+<context>
+Codebase context (from output_dir/context.md — do NOT re-Read it from disk; this block IS the canonical copy):
+
+---
+threat_model: REMOTE
+severity_filter: all
+scope_subpath: contracts/launchpad
+finding_scope_root: contracts/launchpad
+context_roots: .
+has_unsafe: false
+has_ffi: false
+has_concurrency: false
+has_async: true
+has_packed_repr: false
+has_fs_io: true
+output_dir: /Users/adityakrx/VFT-Portal-DApp/docs/audit/runs/rust-review-20261022
+cargo_manifest: workspace (contracts/launchpad/Cargo.toml)
+---
+
+## Purpose
+Mainnet-bound Vara/Gear Sails smart contracts (no_std wasm32, gstd =1.10.0, sails-rs =0.10.2, Rust 1.91.0, overflow-checks ON in release). `launchpad/app` is a pump.fun-style bonding-curve launchpad that custodies native VARA (escrow, creator/protocol fees, small-sell payouts), sells 800M of a 1B token supply on a constant-product curve with virtual reserves, and on sell-out runs an 11-step async "graduation" to RivrDEX (wrap VARA, create/use pair, align price, add liquidity, burn LP, revoke roles, settle). `vft/app` is the per-launch fungible token.
+
+## Scope
+Findings only inside contracts/launchpad, EXCLUDING launchpad/tests/, tests-wasm/ and target/. vendor/vara-amm and awesome-sails are context only.
+
+## Entry points
+Every public Sails service method on Launchpad (Launch, Buy, Sell, Graduate, Unwind, Reconcile, ClaimCreatorFees, ClaimPayout, admin setters, queries) and Vft. Callers are arbitrary accounts/programs choosing args, attached value AND the gas limit of their message. Gear semantics: state before an `.await` is committed even if the continuation later traps or runs out of gas; attached value is refunded only on a trap before the first await; `wait_up_to` timeouts do not cancel the outbound message; other messages interleave between awaits; sends with non-zero value below the existential deposit are rejected.
+
+## Trust boundaries
+Untrusted users/programs → Launchpad. Semi-trusted admin (config, fee recipient). Launchpad → its own spawned VFT (trusted code) and → RivrDEX factory/pair/wVARA (external; a pair can be created and seeded by an attacker before graduation). Off-chain keeper only calls permissionless methods.
+
+## Existing hardening
+47 gtest integration tests incl. adversarial pre-seeded pair cases; docs/audit threat model/invariants/runbook; overflow-checks; per-launch lock/busy flags; launch cooldown. No fuzzing; no lint policy.
+
+## Run note
+Output directory relocated from a session scratchpad that was cleared mid-run. Workers 1,3-6,8-10,12-15 completed earlier with these results (their coverage files were lost with the scratchpad): worker-9 filed STRCMP-001, worker-12 filed CARGOLINT-001 and MSRV-001 (recreated from their reports), all other listed workers cleared every pass with 0 findings. Workers 2, 7, 11 were re-run and their artifacts are intact.
+</context>
+
+— assignment —
+Worker id: worker-5
+Cluster id: recursion-dos-2
+Cluster prompt: /Users/adityakrx/.claude/plugins/cache/trailofbits/rust-review/1.1.0/prompts/clusters/recursion-dos.md
+Sub-prompt paths:
+  - /Users/adityakrx/.claude/plugins/cache/trailofbits/rust-review/1.1.0/prompts/general/recursive-format-stack-overflow-finder.md
+Pass bug classes: recursive-format-stack-overflow
+Pass prefixes: RECURSEFMT
+Skip subclasses: (none)

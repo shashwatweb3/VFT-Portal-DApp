@@ -21,6 +21,8 @@ import { TransferredToUsersHandler } from "./coin/transferred-to-users.handler";
 import { BurnedHandler } from "./coin/burned.handler";
 import { MintedHandler } from "./coin/minted.handler";
 import { HexString } from "../types";
+import { LaunchpadEvent, LaunchpadEventsParser } from "../types/launchpad.events";
+import { LaunchpadHandler } from "./launchpad/launchpad.handler";
 
 const factoryEventsToHandler: Partial<
   Record<FactoryEventType, IFactoryEventHandler>
@@ -44,8 +46,38 @@ export class EventsProcessing {
   constructor(
     private readonly entitiesService: EntitiesService,
     private readonly memeFactoryParser: MemeFactoryEventsParser,
-    private readonly coinParser: CoinEventsParser
+    private readonly coinParser: CoinEventsParser,
+    private readonly launchpadParser?: LaunchpadEventsParser,
+    private readonly launchpadHandler?: LaunchpadHandler
   ) {}
+
+  async handleLaunchpadEvent(
+    payload: HexString,
+    eventInfo: EventInfo
+  ): Promise<LaunchpadEvent | null> {
+    const { blockNumber, messageId } = eventInfo;
+    if (!this.launchpadParser || !this.launchpadHandler) return null;
+    try {
+      const event = this.launchpadParser.getEvent(payload);
+      if (!event) {
+        console.warn(`${blockNumber}-${messageId}: unknown launchpad event`, payload);
+        return null;
+      }
+      await this.entitiesService.addEvent({
+        blockNumber,
+        timestamp: eventInfo.timestamp,
+        type: event.type,
+        raw: JSON.stringify(event, (_k, v) => (typeof v === "bigint" ? v.toString() : v)),
+        txHash: eventInfo.txHash,
+      });
+      console.log(`${blockNumber}-${messageId}: launchpad ${event.type} ${"token" in event ? event.token : ""}`);
+      await this.launchpadHandler.handle(event, eventInfo, this.entitiesService);
+      return event;
+    } catch (e) {
+      console.error(`${blockNumber}-${messageId}: error handling launchpad event`, e);
+      return null;
+    }
+  }
 
   saveAll() {
     return this.entitiesService.saveAll();

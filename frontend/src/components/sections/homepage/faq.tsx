@@ -7,6 +7,7 @@ import {
 	AccordionTrigger,
 } from '@/components/ui/accordion'
 import { Sprite } from '@/components/ui/sprite'
+import { CURVE_ENABLED } from '@/lib/consts'
 
 type Props = {
 	className?: string
@@ -22,7 +23,7 @@ export function HomepageFAQ({ className }: Props) {
 				className="mx-auto mt-8 grid max-w-[920px] gap-y-4 sm:gap-y-8 lg:gap-y-5"
 				type="multiple"
 			>
-				{QA.map((item, i) => (
+				{ITEMS.map((item, i) => (
 					<AccordionItem key={i} value={`item-${i}`} className="">
 						<AccordionTrigger
 							noIcon
@@ -48,7 +49,7 @@ export function HomepageFAQ({ className }: Props) {
 						>
 							<div className="space-y-4">{item.answer}</div>
 						</AccordionContent>
-						{i !== QA.length - 1 && (
+						{i !== ITEMS.length - 1 && (
 							<div className="mt-4 h-px w-full bg-[#FDFDFD]/[2%] sm:mt-8 lg:mt-5" />
 						)}
 					</AccordionItem>
@@ -57,6 +58,63 @@ export function HomepageFAQ({ className }: Props) {
 		</section>
 	)
 }
+
+const CURVE_QA = [
+	{
+		question: 'What is a Curve Launch?',
+		answer: (
+			<>
+				<p>
+					A Curve Launch puts your token on a bonding curve instead of asking you
+					for liquidity up front. Anyone can buy and sell against the curve, and
+					each buy moves the price up a little. Trades settle in an open-source
+					smart contract. Its admin can pause new buys but cannot withdraw the VARA
+					people pay in.
+				</p>
+			</>
+		),
+	},
+	{
+		question: 'What happens at graduation?',
+		answer: (
+			<>
+				<p>
+					When 800,000,000 tokens have been sold on the curve, anyone can trigger
+					graduation (our keeper does it automatically). The launchpad opens a
+					RivrDEX pool with the VARA the curve raised, minus trading fees and a
+					small listing fee, and the remaining 200,000,000 tokens. The LP
+					tokens are burned and every mint, burn and admin role on the token is
+					renounced. From then on the token trades on RivrDEX.
+				</p>
+			</>
+		),
+	},
+	{
+		question: 'What are the fees on the curve?',
+		answer: (
+			<>
+				<p>
+					Each curve trade pays a 1 % fee on the VARA side: 0.5 % to the token&apos;s
+					creator and 0.5 % to the protocol treasury. Creators claim their share
+					from the token page. After graduation, trading fees are RivrDEX&apos;s pool
+					fees.
+				</p>
+			</>
+		),
+	},
+	{
+		question: 'Can I still create a classic token?',
+		answer: (
+			<>
+				<p>
+					Yes. Choose Classic VFT in the create flow to set your own supply and
+					decimals and keep the admin, mint and burn roles. You then list on
+					RivrDEX yourself whenever you are ready.
+				</p>
+			</>
+		),
+	},
+]
 
 const QA = [
 	{
@@ -68,8 +126,16 @@ const QA = [
 					standard VFT (Vara Fungible Token) smart contract in minutes -
 					memecoins, utility tokens, DAO governance tokens, reward points, or
 					anything else. You set the name, supply, symbol, and logo. The
-					contract is deployed automatically, and full ownership belongs to you.
-					The platform has zero admin access to your token.
+					contract is deployed automatically
+					{CURVE_ENABLED ? (
+						<>
+							. With a Classic VFT the platform has no admin role on your token. With a
+							Curve Launch the launchpad contract holds the token&apos;s roles until
+							graduation and renounces all of them when the token lists on RivrDEX.
+						</>
+					) : (
+						<>, and full ownership belongs to you. The platform has zero admin access to your token.</>
+					)}
 				</p>
 			</>
 		),
@@ -163,8 +229,10 @@ const QA = [
 		answer: (
 			<>
 				<p>
-					Your token contract is deployed using the audited VFT standard on Vara
-					Network, and the platform holds no admin keys. For broader security:
+					{CURVE_ENABLED
+						? 'Your token contract follows the VFT standard on Vara Network. For Classic tokens the platform holds no admin keys; for curve tokens the launchpad contract holds them until graduation and then renounces mint, burn and admin for good.'
+						: 'Your token contract follows the VFT standard on Vara Network, and the platform holds no admin keys.'}{' '}
+					For broader security:
 					communicate transparently with your community, use secure distribution
 					practices, and - if you plan to build significant value around the
 					token - consider a third-party audit.
@@ -189,9 +257,9 @@ const QA = [
 		answer: (
 			<>
 				<p>
-					Launching a token is free. You only need a small amount of VARA in
-					your wallet to cover network gas fees for deployment, minting, and
-					transfers.
+					{CURVE_ENABLED
+						? 'A Classic VFT costs only network gas. Curve launches can be gas-sponsored (one per wallet per day) when sponsorship is available. Either way, keep a small amount of VARA in your wallet for later transactions.'
+						: 'Launching a token costs only network gas. You need a small amount of VARA in your wallet to cover fees for deployment, minting, and transfers.'}
 				</p>
 				<p>
 					Note: the{' '}
@@ -235,3 +303,5 @@ const QA = [
 		),
 	},
 ]
+
+const ITEMS = CURVE_ENABLED ? [...CURVE_QA, ...QA] : QA

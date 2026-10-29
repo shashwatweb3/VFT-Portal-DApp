@@ -36,6 +36,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { Mint } from '../token-mint'
 import { Token } from '@/lib/hooks/use-fetch-coins'
+import { CoinStatus } from '@/components/sections/tokens/all-coins/table.columns'
 
 type ContentLayoutProps = {
 	data: Token[]
@@ -133,6 +134,12 @@ export function MobileList({ data }: ContentLayoutProps) {
 										<Separator.Root className="my-[15px] bg-[#FDFDFD]/[4%] data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px" />
 									</div>
 									<div className="flex flex-col gap-2">
+										{i.kind && (
+											<div className="flex items-center justify-between">
+												<span className="text-[#FDFDFD]/[80%]">Status</span>
+												<CoinStatus token={i} />
+											</div>
+										)}
 										<div className="flex justify-between">
 											<span className="text-[#FDFDFD]/[80%]">
 												Initial Supply

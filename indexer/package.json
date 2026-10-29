@@ -12,7 +12,8 @@
     "serve": "squid-graphql-server serve",
     "serve:prod": "squid-graphql-server --subscriptions --dumb-cache in-memory --dumb-cache-ttl 1000 --dumb-cache-size 100 --dumb-cache-max-age 1000",
     "format": "prettier --write \"src/**/*.ts\"",
-    "start": "npm run migrations:apply && node lib/main.js"
+    "start": "npm run migrations:apply && node lib/main.js",
+    "test": "npm run build && node --test test/*.test.mjs"
   },
   "dependencies": {
     "@subsquid/graphql-server": "4.11.0",

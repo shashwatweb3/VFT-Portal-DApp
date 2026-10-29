@@ -42,6 +42,8 @@ export class PinataService {
         await new Promise((resolve) => setTimeout(resolve, 30 * 1000));
         return this.uploadFile(file, fileName, retries + 1);
       }
+      // Any other failure must surface; returning undefined would answer 200 with no hash.
+      throw e;
     }
   }
 }

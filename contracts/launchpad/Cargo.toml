@@ -1,0 +1,29 @@
+[workspace]
+resolver = "2"
+members = ["launchpad", "launchpad/app", "launchpad/client", "vft", "vft/app", "test-programs/proxy"]
+
+[workspace.package]
+version = "0.1.0"
+license = "MIT"
+edition = "2021"
+publish = false
+# Matches rust-toolchain.toml; the wasm hashes in wasm-hashes.txt are only reproducible with it.
+rust-version = "1.91.0"
+
+[workspace.dependencies]
+gstd = "=1.10.0"
+gtest = "=1.10.0"
+gclient = "=1.10.0"
+sails-rs = "=0.10.2"
+sails-client-gen = "=0.10.2"
+sails-idl-gen = "=0.10.2"
+parity-scale-codec = { version = "3", default-features = false }
+scale-info = { version = "2", default-features = false }
+tokio = { version = "1.41", features = ["rt", "macros"] }
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+unused_must_use = "deny"
+
+[profile.release]
+overflow-checks = true

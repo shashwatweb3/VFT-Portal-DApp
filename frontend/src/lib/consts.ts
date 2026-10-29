@@ -31,3 +31,27 @@ export const EXPLORER = {
 		'https://explorer.tokenator.club/graphql',
 	),
 }
+
+export const LAUNCHPAD = {
+	ADDRESS: publicEnv(process.env.NEXT_PUBLIC_LAUNCHPAD_ADDRESS, '') as HexString,
+	VOUCHER_API: publicEnv(process.env.NEXT_PUBLIC_VOUCHER_API, ''),
+	RIVRDEX_APP: publicEnv(
+		process.env.NEXT_PUBLIC_RIVRDEX_APP,
+		'https://app.rivrdex.io',
+	),
+	/** Version string hashed into `terms_hash` on every launch. Bump when the terms change. */
+	TERMS_VERSION: 'tokenator-curve-terms-v1',
+}
+
+/** True when this build points at a launchpad; every Curve Launch surface is gated on it. */
+export const CURVE_ENABLED = (process.env.NEXT_PUBLIC_LAUNCHPAD_ADDRESS ?? '').trim().length === 66
+
+export const CURVE = {
+	VARA_DECIMALS: 12,
+	TOKEN_DECIMALS: 18,
+	/** Blocks a trade stays valid after signing (~3 s blocks). */
+	DEADLINE_BLOCKS: 60,
+	QUOTE_POLL_MS: 3000,
+	/** Keep this much VARA aside for the existential deposit and gas. */
+	KEEP_VARA: BigInt(2) * BigInt(10) ** BigInt(12),
+}

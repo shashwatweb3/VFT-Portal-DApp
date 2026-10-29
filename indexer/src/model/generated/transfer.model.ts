@@ -1,52 +1,42 @@
-import {
-  Entity as Entity_,
-  Column as Column_,
-  PrimaryColumn as PrimaryColumn_,
-  ManyToOne as ManyToOne_,
-  Index as Index_,
-} from "typeorm";
-import * as marshal from "./marshal";
-import { Coin } from "./coin.model";
-import { Factory } from "./factory.model";
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, ManyToOne as ManyToOne_, Index as Index_, IntColumn as IntColumn_, DateTimeColumn as DateTimeColumn_, StringColumn as StringColumn_, BigIntColumn as BigIntColumn_} from "@subsquid/typeorm-store"
+import {Coin} from "./coin.model"
+import {Factory} from "./factory.model"
 
 @Entity_()
 export class Transfer {
-  constructor(props?: Partial<Transfer>) {
-    Object.assign(this, props);
-  }
+    constructor(props?: Partial<Transfer>) {
+        Object.assign(this, props)
+    }
 
-  @PrimaryColumn_()
-  id!: string;
+    @PrimaryColumn_()
+    id!: string
 
-  @Index_()
-  @ManyToOne_(() => Coin, { nullable: true })
-  coin!: Coin;
+    @Index_()
+    @ManyToOne_(() => Coin, {nullable: true})
+    coin!: Coin
 
-  @Index_()
-  @Column_("int4", { nullable: false })
-  blockNumber!: number;
+    @Index_()
+    @IntColumn_({nullable: false})
+    blockNumber!: number
 
-  @Index_()
-  @Column_("timestamp with time zone", { nullable: false })
-  timestamp!: Date;
+    @Index_()
+    @DateTimeColumn_({nullable: false})
+    timestamp!: Date
 
-  @Index_()
-  @Column_("text", { nullable: true })
-  extrinsicHash!: string | undefined | null;
+    @Index_()
+    @StringColumn_({nullable: true})
+    extrinsicHash!: string | undefined | null
 
-  @Column_("text", { nullable: false })
-  from!: string;
+    @StringColumn_({nullable: false})
+    from!: string
 
-  @Column_("text", { nullable: false })
-  to!: string;
+    @StringColumn_({nullable: false})
+    to!: string
 
-  @Column_("numeric", {
-    transformer: marshal.bigintTransformer,
-    nullable: false,
-  })
-  amount!: bigint;
+    @BigIntColumn_({nullable: false})
+    amount!: bigint
 
-  @Index_()
-  @ManyToOne_(() => Factory, { nullable: true })
-  factory!: Factory | undefined | null;
+    @Index_()
+    @ManyToOne_(() => Factory, {nullable: true})
+    factory!: Factory | undefined | null
 }

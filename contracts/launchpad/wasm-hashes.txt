@@ -1,0 +1,3 @@
+# sha256 of target/wasm32-gear/release/*.opt.wasm, rustc 1.91.0; regenerate with scripts/wasm-hashes.sh
+2d743915be943067583e5718a917a153b735cea14741cba3bd7bc1198a6b25be  launchpad.opt.wasm
+495db5b2158ef2db4c21e27002516bb42bdcf4a1485507edb107015bed6c67ea  tokenator_vft.opt.wasm

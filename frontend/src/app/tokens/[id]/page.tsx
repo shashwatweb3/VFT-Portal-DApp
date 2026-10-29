@@ -4,6 +4,9 @@ import {
 } from '@/components/sections/tokens/single-token/single-token'
 import { notFound } from 'next/navigation'
 import { EXPLORER } from '@/lib/consts'
+import { ChainToken } from '@/components/sections/tokens/curve/chain-token'
+import { isValidHexString } from '@/lib/utils'
+import { LAUNCHPAD } from '@/lib/consts'
 
 async function getData(id: string) {
 	const query = `query TokenById($id: String!) {
@@ -61,16 +64,28 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
 	const { id } = params
 
-	const data = (await getData(id)) as ITokenResponse
+	const curveEnabled = LAUNCHPAD.ADDRESS.length === 66
+	// Without the launchpad, behave exactly as before (indexer errors surface to the error page).
+	const data = (curveEnabled ? await getData(id).catch(() => null) : await getData(id)) as ITokenResponse | null
 
-	if (!data || !data.data.coinById) return notFound()
+	if (!data || !data.data.coinById) {
+		// Curve tokens exist on chain before the indexer has seen them.
+		if (curveEnabled && isValidHexString(id) && id.length === 66) {
+			return (
+				<div className="container xl:max-w-[1440px]">
+					<ChainToken id={id} />
+				</div>
+			)
+		}
+		return notFound()
+	}
 
 	const {
 		data: { coinById },
 	} = data
 
 	return (
-		<div className="container">
+		<div className="container xl:max-w-[1440px]">
 			<Token token={coinById} />
 		</div>
 	)

@@ -13,11 +13,12 @@ import {
 } from '@/lib/utils'
 import { getSafeHttpsUrl, getSafeImageSrc } from '@/lib/sanitize'
 import { useAlert } from '@gear-js/react-hooks'
-import { BackButton } from '@/components/common/back-button'
 import { HexString } from '@gear-js/api'
 import { useFetchBalances } from '@/lib/hooks/use-fetch-balances'
 import { useAuth } from '@/lib/hooks/use-auth'
 import { Mint } from '@/components/common/token-mint'
+import { CurveTokenSkeleton, CurveTokenView } from '@/components/sections/tokens/curve/curve-token-view'
+import { launchpadEnabled, useLaunchInfo } from '@/lib/sails/use-launchpad'
 
 export interface IToken {
 	description: string
@@ -48,7 +49,7 @@ type Props = {
 function SocialLink({ platform, href }: { platform: string; href: string }) {
 	return (
 		<Link href={href} target="_blank" rel="noreferrer">
-			<Sprite name={platform} color="#B4FF69" className="size-[26px]" />
+			<Sprite name={platform} color="#B4FF69" className="size-5" />
 		</Link>
 	)
 }
@@ -59,6 +60,9 @@ export function Token({ token: { id, ...token } }: Props) {
 	const { balances } = useFetchBalances(isOpenMintModal)
 
 	const alert = useAlert()
+	// Curve tokens have a fixed supply and no roles to mint or burn; their stats live in the curve block.
+	const { data: launch, isLoading: launchLoading } = useLaunchInfo(id, launchpadEnabled())
+	const isCurve = !!launch
 
 	const onCopyLink = async () => {
 		if (window) {
@@ -70,6 +74,10 @@ export function Token({ token: { id, ...token } }: Props) {
 	}
 
 	const isAdmin = walletAccount?.decodedAddress === token.createdBy
+
+	// Curve tokens get the trading terminal; wait for the chain before choosing a layout so it does not flash.
+	if (launchpadEnabled() && launchLoading) return <CurveTokenSkeleton />
+	if (isCurve) return <CurveTokenView token={id} meta={token} />
 
 	const tokenBalance = balances?.find(
 		(balance) => balance.coin.id === id
@@ -89,8 +97,20 @@ export function Token({ token: { id, ...token } }: Props) {
 	const tokenomicsHref = getSafeHttpsUrl(token.tokenomics)
 	const imageSrc = getSafeImageSrc(token.image)
 
+	const stats: [string, string][] = [
+		['Holders', String(token.holders)],
+		['Total supply', formatUnits(BigInt(token.circulatingSupply), token.decimals)],
+		['Distributed', `${formatDistributedPercentage(token.distributed, token.maxSupply)}%`],
+		['Minted', formatUnits(BigInt(token.minted), token.decimals)],
+		['Burned', formatUnits(BigInt(token.burned), token.decimals)],
+		['Initial supply', formatUnits(BigInt(token.initialSupply), token.decimals)],
+		['Max supply', formatUnits(BigInt(token.maxSupply), token.decimals)],
+		['Decimals', String(token.decimals)],
+	]
+	const canSend = !!tokenBalance && BigInt(tokenBalance) > 0 && !!walletAccount
+
 	return (
-		<section>
+		<section className="font-poppins my-6 flex flex-col gap-4 max-sm:my-4">
 			<Mint
 				isMintModalOpen={isOpenMintModal}
 				available={availableMint}
@@ -98,18 +118,21 @@ export function Token({ token: { id, ...token } }: Props) {
 				id={id}
 				mintModalHandler={setIsOpenMintModal}
 			/>
-			<div className="ju my-10 flex flex-col gap-8 max-sm:my-5">
-				<BackButton />
-			</div>
-
-			<div className="grid h-[250px] grid-cols-4 grid-rows-1 gap-10 max-sm:h-auto max-sm:grid-cols-none">
-				<div className="">
+			<div className="flex flex-wrap items-start gap-6 rounded-2xl border border-[#2E3B55] bg-[#1D2C4B] p-5 max-sm:p-4">
+				<div className="flex min-w-0 flex-1 basis-[420px] items-start gap-4">
+					<Link
+						href="/tokens"
+						aria-label="Back to tokens"
+						className="flex size-9 shrink-0 items-center justify-center rounded-full border border-[#2E3B55] text-[#FDFDFD]/80 transition hover:border-[#B4FF69] hover:text-primary"
+					>
+						←
+					</Link>
 					<Image
 						src={imageSrc}
 						alt={`Logo ${token.name}`}
-						width={160}
-						height={160}
-						className="relative size-max h-40 w-full max-w-40 rounded-full object-cover max-sm:size-20"
+						width={72}
+						height={72}
+						className="size-[72px] shrink-0 rounded-xl object-cover max-sm:size-14"
 						unoptimized={true}
 						onError={(e) => {
 							const target = e.target as HTMLImageElement
@@ -117,175 +140,84 @@ export function Token({ token: { id, ...token } }: Props) {
 							target.src = '/images/no-token.png'
 						}}
 					/>
-				</div>
-				<div className="max-sm:col-span-1 max-sm:col-start-2 max-sm:w-full max-sm:content-center md:w-max">
-					<div className="gap-0 sm:flex sm:flex-col sm:items-baseline sm:gap-4">
-						<h2 className="font-ps2p text-primary text-[32px] max-sm:text-[16px]">
-							{token.name}
-						</h2>
-						<div className="font-poppins mt-2 flex flex-col gap-0 text-[24px] font-semibold text-white/[80%] max-sm:text-[14px] md:mt-0 md:flex-row md:gap-2">
-							{tokenBalance && <span>{formattedBalance}</span>}
-							<span>{token.symbol}</span>
+					<div className="flex min-w-0 flex-col gap-2">
+						<div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+							<h1 className="font-ps2p text-primary truncate text-[20px] max-sm:text-[14px]">{token.name}</h1>
+							<span className="font-silkscreen text-[14px] text-[#FDFDFD]/70">{token.symbol}</span>
+							{tokenBalance && (
+								<span className="text-[12px] text-[#FDFDFD]/60">
+									You hold <span className="text-primary font-semibold">{formattedBalance}</span>
+								</span>
+							)}
 						</div>
-					</div>
-				</div>
-				<div className="col-span-2 col-start-2 row-start-4 max-sm:col-span-3 max-sm:col-start-1 max-sm:row-start-2 max-sm:text-[14px]">
-					<div className="font-poppins flex items-center gap-3">
-						<button className="flex items-center gap-2" onClick={onCopyAddress}>
-							<Sprite name="copy" color="#B4FF69" className="size-4" />
-							{prettyWord(id, 4)}
-						</button>
-						<button className="flex items-center gap-2" onClick={onCopyLink}>
-							<Sprite name="link" color="#B4FF69" className="size-4" />
-							Share link
-						</button>
-						{tokenomicsHref && (
-							<Link href={tokenomicsHref} target="_blank" rel="noreferrer">
-								<div className="flex items-center gap-2">
-									<Sprite
-										name="tokenomics"
-										color="#B4FF69"
-										className="size-4"
-									/>
-									Tokenomics
-								</div>
-							</Link>
-						)}
-					</div>
-				</div>
-
-				<div className="col-span-2 col-start-4 max-sm:col-span-3 max-sm:text-[14px]">
-					<div className="flex h-max min-w-[30%] flex-col items-end rounded-lg border-2 border-[#2E3B55]">
-						<div className="w-full">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Holders
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">{token.holders}</p>
-							</div>
-						</div>
-						<div className="w-full bg-[#FDFDFD]/[2%]">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Total Supply
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">
-									{formatUnits(BigInt(token.circulatingSupply), token.decimals)}
-								</p>
-							</div>
-						</div>
-						<div className="w-full">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Distributed
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">
-									{formatDistributedPercentage(
-										token.distributed,
-										token.maxSupply
-									)}
-									%
-								</p>
-							</div>
-						</div>
-						<div className="w-full bg-[#FDFDFD]/[2%]">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Minted
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">
-									{formatUnits(BigInt(token.minted), token.decimals)}
-								</p>
-							</div>
-						</div>
-						<div className="w-full">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Burned
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">
-									{formatUnits(BigInt(token.burned), token.decimals)}
-								</p>
-							</div>
-						</div>
-						<div className="w-full bg-[#FDFDFD]/[2%]">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Initial Supply
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">
-									{formatUnits(BigInt(token.initialSupply), token.decimals)}
-								</p>
-							</div>
-						</div>
-						<div className="w-full">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Max Supply
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">
-									{formatUnits(BigInt(token.maxSupply), token.decimals)}
-								</p>
-							</div>
-						</div>
-						<div className="w-full bg-[#FDFDFD]/[2%]">
-							<div className="flex w-full items-center justify-between p-3">
-								<span className="font-poppins text-[12px] font-semibold text-[#FDFDFD]/[80%]">
-									Decimals
-								</span>{' '}
-								<p className="ml-2 text-[x-small]">{token.decimals}</p>
-							</div>
-						</div>
-					</div>
-				</div>
-
-				<div className="font-poppins col-span-2 col-start-2 row-start-5 max-sm:col-span-3 max-sm:row-start-4 max-sm:text-[14px]">
-					<div className="flex flex-col gap-3 break-all">
-						<div>
-							<p>{token.description}</p>
-						</div>
-						<div className="flex items-center gap-6">
+						<div className="flex flex-wrap items-center gap-1.5 text-[12px]">
+							<button
+								className="flex h-7 items-center gap-1.5 rounded-md border border-[#2E3B55] bg-[#0F1B34] px-2 text-[#FDFDFD]/80 transition hover:border-[#B4FF69]/60"
+								onClick={onCopyAddress}
+							>
+								{prettyWord(id, 4)} <Sprite name="copy" color="#B4FF69" className="size-3" />
+							</button>
+							<button
+								className="flex h-7 items-center gap-1.5 rounded-md border border-[#2E3B55] bg-[#0F1B34] px-2 text-[#FDFDFD]/80 transition hover:border-[#B4FF69]/60"
+								onClick={onCopyLink}
+							>
+								<Sprite name="link" color="#B4FF69" className="size-3" /> Share
+							</button>
+							{tokenomicsHref && (
+								<Link
+									href={tokenomicsHref}
+									target="_blank"
+									rel="noreferrer"
+									className="flex h-7 items-center gap-1.5 rounded-md border border-[#2E3B55] bg-[#0F1B34] px-2 text-[#FDFDFD]/80 transition hover:border-[#B4FF69]/60"
+								>
+									<Sprite name="tokenomics" color="#B4FF69" className="size-3" /> Tokenomics
+								</Link>
+							)}
 							{websiteHref && <SocialLink platform="web" href={websiteHref} />}
-							{twitterHref && (
-								<SocialLink platform="twitter" href={twitterHref} />
-							)}
-							{discordHref && (
-								<SocialLink platform="discord" href={discordHref} />
-							)}
-							{telegramHref && (
-								<SocialLink platform="telegram" href={telegramHref} />
-							)}
+							{twitterHref && <SocialLink platform="twitter" href={twitterHref} />}
+							{discordHref && <SocialLink platform="discord" href={discordHref} />}
+							{telegramHref && <SocialLink platform="telegram" href={telegramHref} />}
 						</div>
-					</div>
-					<div className="my-5 flex items-center gap-3 max-sm:w-full max-sm:justify-between max-sm:gap-1">
-						{tokenBalance && BigInt(tokenBalance) > 0 && walletAccount && (
-							<Link href={`/tokens/${id}/send/`}>
-								<button className="btn items-center py-3 font-medium max-sm:w-25 max-sm:px-2">
-									Send
-								</button>
-							</Link>
+						{token.description && (
+							<p className="max-w-[640px] break-words text-[13px] leading-relaxed text-[#FDFDFD]/80">{token.description}</p>
 						)}
-						{isAdmin && (
-							<>
-								{availableMint > 0 && (
-									<button
-										onClick={() => setIsOpenMintModal(true)}
-										className="btn items-center border-2 !border-[#2E3B55] bg-[#0F1B34] py-3 font-medium text-[#FDFDFD] max-sm:w-25 max-sm:px-2"
-									>
-										Mint Tokens
-									</button>
-								)}
-								{tokenBalance && BigInt(tokenBalance) > 0 && (
-									<Link href={`/tokens/${id}/burn/`}>
-										<button className="btn items-center border-2 !border-[#2E3B55] bg-[#0F1B34] py-3 font-medium text-[#FDFDFD] max-sm:w-25 max-sm:px-2">
-											Burn
-										</button>
+						{(canSend || isAdmin) && (
+							<div className="mt-1 flex flex-wrap items-center gap-2">
+								{canSend && (
+									<Link href={`/tokens/${id}/send/`} className="btn btn--primary px-5 py-2.5 md:py-2.5 md:text-[13px]">
+										Send
 									</Link>
 								)}
-							</>
+								{isAdmin && availableMint > 0 && (
+									<button
+										onClick={() => setIsOpenMintModal(true)}
+										className="btn border border-[#2E3B55] bg-[#0F1B34] px-5 py-2.5 text-[#FDFDFD] md:py-2.5 md:text-[13px]"
+									>
+										Mint tokens
+									</button>
+								)}
+								{isAdmin && canSend && (
+									<Link
+										href={`/tokens/${id}/burn/`}
+										className="btn border border-[#2E3B55] bg-[#0F1B34] px-5 py-2.5 text-[#FDFDFD] md:py-2.5 md:text-[13px]"
+									>
+										Burn
+									</Link>
+								)}
+							</div>
 						)}
 					</div>
 				</div>
+				<dl className="grid w-full max-w-[520px] grid-cols-2 gap-x-6 gap-y-2 rounded-xl border border-[#2E3B55] bg-[#0F1B34]/50 p-4 text-[12px] sm:grid-cols-4 lg:w-auto">
+					{stats.map(([k, v]) => (
+						<div key={k} className="flex min-w-0 flex-col gap-0.5">
+							<dt className="text-[11px] text-[#FDFDFD]/55">{k}</dt>
+							<dd className="truncate font-semibold tabular-nums" title={v}>
+								{v}
+							</dd>
+						</div>
+					))}
+				</dl>
 			</div>
 		</section>
 	)

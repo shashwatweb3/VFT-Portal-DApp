@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import Link from 'next/link'
 import { useAuth } from '@/lib/hooks/use-auth'
+import { CURVE_ENABLED } from '@/lib/consts'
 
 type Props = {
 	className?: string
@@ -63,6 +64,14 @@ export function HeaderMenu({ className }: Props) {
 					>
 						<Link href="/tokens">All Tokens</Link>
 					</DropdownMenuItem>
+					{CURVE_ENABLED && (
+						<>
+							<DropdownMenuSeparator />
+							<DropdownMenuItem asChild>
+								<Link href="/tokens?filter=curve">Curve Launches</Link>
+							</DropdownMenuItem>
+						</>
+					)}
 
 					<DropdownMenuSeparator />
 

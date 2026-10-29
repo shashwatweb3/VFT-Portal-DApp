@@ -1,0 +1,40 @@
+/// Config that will be used to send messages to the other programs or create programs.
+type Config = struct {
+  /// Gas limit for token operations. Token operations include:
+  /// - Mint
+  /// - Burn
+  /// - TransferFrom
+  gas_for_token_ops: u64,
+  /// Gas to reserve for reply processing.
+  gas_for_reply_deposit: u64,
+  /// Timeout in blocks that current program will wait for reply from
+  /// the other programs such as VFT
+  reply_timeout: u32,
+  gas_for_full_tx: u64,
+  gas_for_pair_creation: u64,
+  gas_to_change_fee_to: u64,
+};
+
+constructor {
+  New : (pair_id: code_id, admin: actor_id, fee_to: actor_id, config: Config, treasury_id: actor_id);
+};
+
+service Factory {
+  AddPair : (token0: actor_id, token1: actor_id, pair_address: actor_id) -> null;
+  ChangeFeeTo : (fee_to: actor_id) -> null;
+  ChangeTreasuryId : (new_treasury_id: actor_id) -> null;
+  CreatePair : (token0: actor_id, token1: actor_id) -> null;
+  query FeeTo : () -> actor_id;
+  query GetPair : (token0: actor_id, token1: actor_id) -> actor_id;
+  query Pairs : () -> vec struct { struct { actor_id, actor_id }, actor_id };
+  query TreasuryId : () -> actor_id;
+
+  events {
+    PairCreated: struct {
+      token0: actor_id,
+      token1: actor_id,
+      pair_address: actor_id,
+    };
+  }
+};
+

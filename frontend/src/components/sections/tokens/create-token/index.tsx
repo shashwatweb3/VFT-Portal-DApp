@@ -11,6 +11,10 @@ export const stepAtom = atom<StepType>('create')
 
 export const dataTokenAtom = atom<ICreateTokenForm | undefined>(undefined)
 
+export type LaunchMode = 'curve' | 'classic'
+export const launchModeAtom = atom<LaunchMode>('curve')
+export const createdTokenAtom = atom<`0x${string}` | undefined>(undefined)
+
 export const CreateToken = () => {
 	const [step, setStep] = useAtom(stepAtom)
 	const [dataToken] = useAtom(dataTokenAtom)

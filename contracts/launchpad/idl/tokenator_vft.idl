@@ -1,0 +1,93 @@
+type Init = struct {
+  name: str,
+  symbol: str,
+  decimals: u8,
+  description: str,
+  external_links: ExternalLinks,
+  initial_supply: u256,
+  max_supply: u256,
+  admin_id: actor_id,
+};
+
+type ExternalLinks = struct {
+  image: str,
+  website: opt str,
+  telegram: opt str,
+  twitter: opt str,
+  discord: opt str,
+  tokenomics: opt str,
+};
+
+constructor {
+  New : (init: Init);
+};
+
+service Vft {
+  Approve : (spender: actor_id, value: u256) -> bool;
+  Burn : (from: actor_id, value: u256) -> bool;
+  ChangeDescription : (new_description: str) -> null;
+  ChangeExternalLinks : (new_external_links: ExternalLinks) -> null;
+  ChangeImageLink : (new_image_link: str) -> null;
+  GrantAdminRole : (to: actor_id) -> null;
+  GrantBurnerRole : (to: actor_id) -> null;
+  GrantMinterRole : (to: actor_id) -> null;
+  Kill : (inheritor: actor_id) -> null;
+  Mint : (to: actor_id, value: u256) -> bool;
+  RevokeAdminRole : (from: actor_id) -> null;
+  RevokeBurnerRole : (from: actor_id) -> null;
+  RevokeMinterRole : (from: actor_id) -> null;
+  Transfer : (to: actor_id, value: u256) -> bool;
+  TransferFrom : (from: actor_id, to: actor_id, value: u256) -> bool;
+  TransferToUsers : (to: vec actor_id, value: u256) -> bool;
+  query Admins : () -> vec actor_id;
+  query Allowance : (owner: actor_id, spender: actor_id) -> u256;
+  query BalanceOf : (account: actor_id) -> u256;
+  query Burners : () -> vec actor_id;
+  query Decimals : () -> u8;
+  query Description : () -> str;
+  query ExternalLinks : () -> ExternalLinks;
+  query MaxSupply : () -> u256;
+  query Minters : () -> vec actor_id;
+  query Name : () -> str;
+  query Symbol : () -> str;
+  query TotalSupply : () -> u256;
+
+  events {
+    Minted: struct {
+      to: actor_id,
+      value: u256,
+    };
+    Burned: struct {
+      from: actor_id,
+      value: u256,
+    };
+    Killed: struct {
+      inheritor: actor_id
+    };
+    TransferredToUsers: struct {
+      from: actor_id,
+      to: vec actor_id,
+      value: u256,
+    };
+    DescriptionChanged: struct {
+      new_description: str
+    };
+    ImageLinkChanged: struct {
+      new_image_link: str
+    };
+    ExternalLinksChanged: struct {
+      new_external_links: ExternalLinks
+    };
+    Approval: struct {
+      owner: actor_id,
+      spender: actor_id,
+      value: u256,
+    };
+    Transfer: struct {
+      from: actor_id,
+      to: actor_id,
+      value: u256,
+    };
+  }
+};
+

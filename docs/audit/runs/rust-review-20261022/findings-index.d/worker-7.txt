@@ -1,0 +1,5 @@
+/private/tmp/claude-501/-Users-adityakrx-VFT-Portal-DApp/927fc08a-3a87-4eb8-b5ef-b41b282933fe/scratchpad/rust-review/20261022T053940Z/findings/RESDISC-001.md
+/private/tmp/claude-501/-Users-adityakrx-VFT-Portal-DApp/927fc08a-3a87-4eb8-b5ef-b41b282933fe/scratchpad/rust-review/20261022T053940Z/findings/RESDISC-002.md
+/private/tmp/claude-501/-Users-adityakrx-VFT-Portal-DApp/927fc08a-3a87-4eb8-b5ef-b41b282933fe/scratchpad/rust-review/20261022T053940Z/findings/RESDISC-003.md
+/private/tmp/claude-501/-Users-adityakrx-VFT-Portal-DApp/927fc08a-3a87-4eb8-b5ef-b41b282933fe/scratchpad/rust-review/20261022T053940Z/findings/RESDISC-004.md
+/private/tmp/claude-501/-Users-adityakrx-VFT-Portal-DApp/927fc08a-3a87-4eb8-b5ef-b41b282933fe/scratchpad/rust-review/20261022T053940Z/findings/RESDISC-005.md

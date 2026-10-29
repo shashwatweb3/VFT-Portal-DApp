@@ -1,0 +1,3 @@
+node_modules/
+deployed.json
+wasm/*.wasm

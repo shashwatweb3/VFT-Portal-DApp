@@ -1,33 +1,23 @@
-import {
-  Entity as Entity_,
-  Column as Column_,
-  PrimaryColumn as PrimaryColumn_,
-  Index as Index_,
-  ManyToOne as ManyToOne_,
-} from "typeorm";
-import * as marshal from "./marshal";
-import { Coin } from "./coin.model";
+import {Entity as Entity_, Column as Column_, PrimaryColumn as PrimaryColumn_, StringColumn as StringColumn_, Index as Index_, ManyToOne as ManyToOne_, BigIntColumn as BigIntColumn_} from "@subsquid/typeorm-store"
+import {Coin} from "./coin.model"
 
 @Entity_()
 export class AccountBalance {
-  constructor(props?: Partial<AccountBalance>) {
-    Object.assign(this, props);
-  }
+    constructor(props?: Partial<AccountBalance>) {
+        Object.assign(this, props)
+    }
 
-  @PrimaryColumn_()
-  id!: string;
+    @PrimaryColumn_()
+    id!: string
 
-  @Index_()
-  @Column_("text", { nullable: false })
-  address!: string;
+    @Index_()
+    @StringColumn_({nullable: false})
+    address!: string
 
-  @Index_()
-  @ManyToOne_(() => Coin, { nullable: true })
-  coin!: Coin;
+    @Index_()
+    @ManyToOne_(() => Coin, {nullable: true})
+    coin!: Coin
 
-  @Column_("numeric", {
-    transformer: marshal.bigintTransformer,
-    nullable: false,
-  })
-  balance!: bigint;
+    @BigIntColumn_({nullable: false})
+    balance!: bigint
 }

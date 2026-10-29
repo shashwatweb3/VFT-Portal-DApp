@@ -2,6 +2,9 @@ import { Store } from "@subsquid/typeorm-store";
 import {
   AccountBalance,
   Coin,
+  CurveCandle,
+  CurveLaunch,
+  CurveTrade,
   Factory,
   MemcoinFactoryEvent,
   Transfer,
@@ -13,6 +16,9 @@ export class BatchService {
   private transfers: Transfer[] = [];
   private events: MemcoinFactoryEvent[] = [];
   private accountBalances: AccountBalance[] = [];
+  private curveLaunches: CurveLaunch[] = [];
+  private curveTrades: CurveTrade[] = [];
+  private curveCandles: CurveCandle[] = [];
 
   private coinsToRemove: Coin[] = [];
 
@@ -23,6 +29,10 @@ export class BatchService {
     if (this.factory) {
       await this.store.save(this.factory);
     }
+    // Launches reference coins; trades and candles reference launches.
+    await this.store.save(this.curveLaunches);
+    await this.store.save(this.curveTrades);
+    await this.store.save(this.curveCandles);
     await Promise.all([
       this.store.save(this.accountBalances),
       this.store.save(this.transfers),
@@ -54,7 +64,22 @@ export class BatchService {
     this.events = [];
     this.accountBalances = [];
     this.coinsToRemove = [];
+    this.curveLaunches = [];
+    this.curveTrades = [];
+    this.curveCandles = [];
     this.factory = null;
+  }
+
+  addCurveLaunch(launch: CurveLaunch) {
+    this.safelyPush("curveLaunches", launch);
+  }
+
+  addCurveTrade(trade: CurveTrade) {
+    this.safelyPush("curveTrades", trade);
+  }
+
+  addCurveCandle(candle: CurveCandle) {
+    this.safelyPush("curveCandles", candle);
   }
 
   addCoinUpdate(coin: Coin) {

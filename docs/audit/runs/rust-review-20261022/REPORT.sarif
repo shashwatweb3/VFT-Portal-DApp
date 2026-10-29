@@ -1,0 +1,715 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "rust-review",
+          "informationUri": "https://github.com/trailofbits/skills/tree/main/plugins/rust-review",
+          "rules": [
+            {
+              "id": "arithmetic-overflow",
+              "shortDescription": {
+                "text": "Integer overflow on an attacker-reachable path"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "assertion-reachable",
+              "shortDescription": {
+                "text": "Attacker-reachable assert! or unreachable! panic"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "cancel-safety",
+              "shortDescription": {
+                "text": "Cancellation-unsafe .await sequence"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "cargo-lint-config",
+              "shortDescription": {
+                "text": "Cargo lint config weakens safety checks"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "msrv-mismatch",
+              "shortDescription": {
+                "text": "MSRV or edition mismatch with APIs in use"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "resource-exhaustion",
+              "shortDescription": {
+                "text": "CPU or memory exhaustion DoS on untrusted input"
+              },
+              "defaultConfiguration": {
+                "level": "warning"
+              }
+            },
+            {
+              "id": "result-discarded",
+              "shortDescription": {
+                "text": "Security-relevant Result discarded without handling"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            },
+            {
+              "id": "string-comparison",
+              "shortDescription": {
+                "text": "Partial or case-insensitive string comparison bypasses a check"
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            }
+          ]
+        }
+      },
+      "originalUriBaseIds": {
+        "%SRCROOT%": {
+          "description": {
+            "text": "Root of the audited Rust crate or workspace; finding URIs are relative to this."
+          }
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": true,
+          "properties": {
+            "threat_model": "REMOTE",
+            "severity_filter": "all",
+            "skipped_findings": 0
+          }
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "arithmetic-overflow",
+          "level": "error",
+          "message": {
+            "text": "Division by zero in AlignPrice (rw_target == 0) after await permanently locks a graduating launch"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1254
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "ARITHOFL-001",
+            "bug_class": "arithmetic-overflow",
+            "severity": "CRITICAL",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "arithmetic-overflow",
+          "level": "note",
+          "message": {
+            "text": "Unchecked u32 `ready_at + graduation_timeout_blocks` in unwind panics when the timeout is large"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 788
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "ARITHOFL-002",
+            "bug_class": "arithmetic-overflow",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "LIKELY_TP",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "assertion-reachable",
+          "level": "note",
+          "message": {
+            "text": "curve_params_for panics after the spawn await in launch (zero-value path never pre-validates config)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 439
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "ASSERTREACH-001",
+            "bug_class": "assertion-reachable",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "LIKELY_TP",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "error",
+          "message": {
+            "text": "Graduate sets per-launch lock before await; gas-starved continuation leaves lock=true forever, freezing launch and its escrow"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 702
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-001",
+            "bug_class": "cancel-safety",
+            "severity": "CRITICAL",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "error",
+          "message": {
+            "text": "Sell commits curve move and busy=Some(stuck=false) before await; starved continuation wedges launch (reconcile requires stuck=true)"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 600
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-002",
+            "bug_class": "cancel-safety",
+            "severity": "CRITICAL",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "error",
+          "message": {
+            "text": "run_buy commits curve move and busy before VFT transfer await; gas-starved buy wedges launch permanently"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1076
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-003",
+            "bug_class": "cancel-safety",
+            "severity": "CRITICAL",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "error",
+          "message": {
+            "text": "Reconcile sets lock before balance query await; starved continuation leaves lock and stuck trade permanently unresolved"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 634
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-004",
+            "bug_class": "cancel-safety",
+            "severity": "HIGH",
+            "attack_vector": "Remote",
+            "exploitability": "Difficult",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "error",
+          "message": {
+            "text": "Unwind sets lock before wVARA await; starved continuation blocks both unwind and graduation forever"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 796
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-005",
+            "bug_class": "cancel-safety",
+            "severity": "HIGH",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "warning",
+          "message": {
+            "text": "AlignPrice swap that times out but executes leaves wvara/token budgets stale; AddLiquidity then fails forever at a non-unwindable step"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1250
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-006",
+            "bug_class": "cancel-safety",
+            "severity": "MEDIUM",
+            "attack_vector": "Remote",
+            "exploitability": "Difficult",
+            "fp_verdict": "LIKELY_TP",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cancel-safety",
+          "level": "note",
+          "message": {
+            "text": "Launch reserves name and cooldown before spawn await; trap after await strands creator value and leaves name reserved with no launch"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 385
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CANCELSAFETY-007",
+            "bug_class": "cancel-safety",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "LIKELY_TP",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "cargo-lint-config",
+          "level": "note",
+          "message": {
+            "text": "Workspace declares no lint policy (no forbid(unsafe_code), no deny(unused_must_use))"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/Cargo.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "CARGOLINT-001",
+            "bug_class": "cargo-lint-config",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "msrv-mismatch",
+          "level": "note",
+          "message": {
+            "text": "No rust-version declared; toolchain pinned only via rust-toolchain.toml"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/Cargo.toml",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 5
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "MSRV-001",
+            "bug_class": "msrv-mismatch",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "result-discarded",
+          "level": "note",
+          "message": {
+            "text": "Sell-out excess refund send result discarded; sub-ED refund silently lost and left untracked"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1079
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "RESDISC-001",
+            "bug_class": "result-discarded",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "result-discarded",
+          "level": "note",
+          "message": {
+            "text": "Refund after failed VFT transfer ignores send result; buyer's gross is lost on send failure"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 1085
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "RESDISC-002",
+            "bug_class": "result-discarded",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "result-discarded",
+          "level": "note",
+          "message": {
+            "text": "Reconcile revert refund ignores send result after liability is settled"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 656
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "RESDISC-003",
+            "bug_class": "result-discarded",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "result-discarded",
+          "level": "note",
+          "message": {
+            "text": "First-buy-skipped refund in launch ignores send result after spawn await"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 514
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "RESDISC-004",
+            "bug_class": "result-discarded",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "result-discarded",
+          "level": "note",
+          "message": {
+            "text": "Spawn-failure refund in launch ignores send_value result"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 434
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "RESDISC-005",
+            "bug_class": "result-discarded",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Theoretical",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "resource-exhaustion",
+          "level": "warning",
+          "message": {
+            "text": "Unbounded growth of launches/launch_order/names/pending_payouts and full-vector `launches` query"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 484
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "RESEXHAUST-001",
+            "bug_class": "resource-exhaustion",
+            "severity": "MEDIUM",
+            "attack_vector": "Remote",
+            "exploitability": "Difficult",
+            "fp_verdict": "LIKELY_TP",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        },
+        {
+          "ruleId": "string-comparison",
+          "level": "note",
+          "message": {
+            "text": "name_taken query canonicalises names differently from launch's uniqueness key"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "contracts/launchpad/launchpad/app/src/service.rs",
+                  "uriBaseId": "%SRCROOT%"
+                },
+                "region": {
+                  "startLine": 978
+                }
+              }
+            }
+          ],
+          "properties": {
+            "finding_id": "STRCMP-001",
+            "bug_class": "string-comparison",
+            "severity": "LOW",
+            "attack_vector": "Remote",
+            "exploitability": "Reliable",
+            "fp_verdict": "TRUE_POSITIVE",
+            "unjudged": false,
+            "severity_validated": true,
+            "location_missing": false,
+            "also_known_as": []
+          }
+        }
+      ]
+    }
+  ]
+}

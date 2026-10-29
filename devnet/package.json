@@ -1,0 +1,23 @@
+{
+  "name": "tokenator-devnet",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy": "tsx src/deploy.ts",
+    "smoke": "tsx src/smoke.ts",
+    "keeper": "tsx src/keeper.ts"
+  },
+  "dependencies": {
+    "@gear-js/api": "0.44.2",
+    "@polkadot/api": "16.4.9",
+    "@polkadot/util": "13.5.6",
+    "@polkadot/util-crypto": "13.5.6",
+    "sails-js": "0.5.1",
+    "sails-js-parser": "0.5.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  }
+}

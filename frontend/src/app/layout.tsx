@@ -1,10 +1,11 @@
 import '@/styles/globals.css'
 import type { Metadata } from 'next'
 import { Silkscreen, Poppins, Press_Start_2P } from 'next/font/google'
-import Script from 'next/script'
 import { Header } from '@/components/layouts/base/header'
 import { ReactNode } from 'react'
 import { GearApiProvider } from '@/components/providers/gear-api'
+import { AnalyticsConsent } from '@/components/common/consent/consent-banner'
+import { CURVE_ENABLED } from '@/lib/consts'
 
 const GTM_ID = 'GTM-PRHTXR49'
 
@@ -34,11 +35,13 @@ const siteConfig = {
 
 export const metadata: Metadata = {
 	title: {
-		default: 'Tokenator - Deploy a VFT on Vara',
+		default: CURVE_ENABLED ? 'Tokenator 2.0 - Launch a token on Vara' : 'Tokenator - Deploy a VFT on Vara',
 		template: `%s | ${siteConfig.name}`,
 	},
 	description:
-		'Deploy a VFT smart contract to Vara Network in minutes. No code. Yours forever. After launch, list your token on RivrDEX - the native DEX on Vara Network.',
+		CURVE_ENABLED
+			? 'Launch a token on Vara on a bonding curve. When the curve sells out it graduates to RivrDEX with the LP tokens burned.'
+			: 'Deploy a VFT smart contract to Vara Network in minutes. No code. Yours forever. After launch, list your token on RivrDEX - the native DEX on Vara Network.',
 }
 
 export default function RootLayout({
@@ -47,32 +50,18 @@ export default function RootLayout({
 	children: ReactNode
 }>) {
 	return (
+		// A wallet SDK writes Telegram viewport CSS variables onto <html> before hydration.
 		<html
 			lang="en"
+			suppressHydrationWarning
 			className={`${silkscreen.variable} ${poppins.variable} ${pressStart2P.variable}`}
 		>
-			<head>
-				<Script id="gtm" strategy="afterInteractive">
-					{`(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
-new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
-j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
-'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
-})(window,document,'script','dataLayer','${GTM_ID}');`}
-				</Script>
-			</head>
 			<body className="flex min-h-screen flex-col font-ps2p [--header-height:5.625rem] sm:[--header-height:4.375rem] lg:[--header-height:6.25rem]">
-				<noscript>
-					<iframe
-						src={`https://www.googletagmanager.com/ns.html?id=${GTM_ID}`}
-						height="0"
-						width="0"
-						style={{ display: 'none', visibility: 'hidden' }}
-					/>
-				</noscript>
 				<GearApiProvider>
 					<Header />
 				</GearApiProvider>
 				{children}
+				<AnalyticsConsent gtmId={GTM_ID} />
 			</body>
 		</html>
 	)

@@ -2,6 +2,7 @@ import { HeroBackground } from '@/components/sections/homepage/hero-background'
 import { HeroTokenator } from '@/components/sections/homepage/hero-tokenator'
 import { HeroTicker } from '@/components/sections/homepage/hero-ticker'
 import { CreateButtonLazy } from '@/components/common/create-button-lazy'
+import { CURVE_ENABLED } from '@/lib/consts'
 
 export function Hero() {
 	return (
@@ -16,7 +17,9 @@ export function Hero() {
 						Launch Your <br /> Token on Vara
 					</h1>
 					<p className="mt-5 font-silkscreen text-[16px]/[1.25] text-[#FDFDFD] drop-shadow-[0_2px_0_#242424] sm:mt-6 md:text-[24px]/[1.4]">
-						Create any fungible token in minutes - no code, no limits.
+						{CURVE_ENABLED
+							? 'Launch on a bonding curve, then graduate to RivrDEX.'
+							: 'Create any fungible token in minutes - no code, no limits.'}
 					</p>
 					<CreateButtonLazy />
 				</div>

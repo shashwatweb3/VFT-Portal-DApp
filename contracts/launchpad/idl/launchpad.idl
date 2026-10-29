@@ -1,0 +1,358 @@
+type Config = struct {
+  vft_code_id: code_id,
+  addrs: Addrs,
+  /// Gross VARA (planck) a curve must take in before it graduates. Set by the operator from
+  /// the USD target and the VARA price; frozen per launch.
+  raise_target_vara: u128,
+  /// VARA kept out of the pool at graduation to pay pair creation, LP account ED and gas.
+  graduation_fee_vara: u128,
+  /// VARA the RivrDEX factory requires with `CreatePair` (exactly 1 VARA on mainnet).
+  pair_creation_fee_vara: u128,
+  total_supply: u256,
+  curve_supply: u256,
+  token_decimals: u8,
+  /// Total trade fee in basis points of the VARA leg.
+  fee_bps: u16,
+  /// Creator's share, in basis points of the VARA leg (must be <= fee_bps).
+  creator_fee_bps: u16,
+  min_trade_vara: u128,
+  /// Free balance (above all liabilities) the program must keep to spawn a token.
+  min_free_balance: u128,
+  /// Blocks a launch may sit in `Ready` or `Failed` before anyone may `Unwind` it.
+  graduation_timeout_blocks: u32,
+  /// Blocks a creator must wait between launches. Each launch costs the operating reserve the
+  /// new token's existential deposit, so this bounds how fast one wallet can drain it.
+  launch_cooldown_blocks: u32,
+  gas: GasConfig,
+};
+
+type Addrs = struct {
+  rivr_factory: actor_id,
+  wvara: actor_id,
+  lp_dead: actor_id,
+  treasury: actor_id,
+};
+
+/// Gas budgets for every cross-program message the launchpad sends.
+type GasConfig = struct {
+  /// Gas handed to the VFT constructor when a token is spawned.
+  gas_for_vft_init: u64,
+  /// Gas for a VFT transfer / approve / query and for wVARA mint / burn.
+  gas_for_token_ops: u64,
+  /// Gas reserved for processing the reply of each awaited message.
+  gas_for_reply_deposit: u64,
+  /// Blocks to wait for a reply before the await resolves with a timeout.
+  reply_timeout: u32,
+  /// Gas attached to `Factory.CreatePair` (the factory spawns a Pair program from it).
+  gas_for_create_pair: u64,
+  /// Gas attached to `Pair.AddLiquidity`; must exceed the pair's `gas_for_full_tx`.
+  gas_for_add_liquidity: u64,
+};
+
+type TradeReceipt = struct {
+  seq: u64,
+  side: Side,
+  vara: u128,
+  tokens: u256,
+  fee: u128,
+  price_after_e18: u256,
+  completed_curve: bool,
+};
+
+type Side = enum {
+  Buy,
+  Sell,
+};
+
+type LaunchpadError = enum {
+  SpawnFailed: str,
+  TransferFailed,
+  TradeStuck,
+  NotStuck,
+  Unreconcilable,
+  GraduationFailed: struct {
+    step: GradStep,
+    reason: str,
+    retryable: bool,
+  },
+  NotGraduating,
+  FirstBuySkipped: str,
+  NotUnwindable,
+  NothingToClaim,
+  BelowExistentialDeposit,
+};
+
+type GradStep = enum {
+  WrapVara,
+  FindOrCreatePair,
+  ApproveToken,
+  ApproveWvara,
+  AlignPrice,
+  AddLiquidity,
+  BurnLp,
+  RevokeMinter,
+  RevokeBurner,
+  RevokeAdmin,
+  Settle,
+  Done,
+};
+
+type TokenMeta = struct {
+  name: str,
+  symbol: str,
+  description: str,
+  image: str,
+  website: opt str,
+  telegram: opt str,
+  twitter: opt str,
+  discord: opt str,
+  tokenomics: opt str,
+};
+
+type Launch = struct {
+  token: actor_id,
+  creator: actor_id,
+  name: str,
+  symbol: str,
+  state: LaunchState,
+  step: GradStep,
+  v0: u256,
+  t0: u256,
+  virtual_vara: u256,
+  virtual_tokens: u256,
+  curve_supply: u256,
+  real_remaining: u256,
+  pool_tokens: u256,
+  /// VARA held for sell-backs (and, once Ready, for the pool).
+  escrow: u128,
+  pool_vara: u128,
+  graduation_fee: u128,
+  pair_creation_fee: u128,
+  creator_fees: u128,
+  protocol_fees: u128,
+  trade_seq: u64,
+  busy: opt PendingTrade,
+  /// Set while a graduation step, an unwind or a reconcile has a message in flight.
+  lock: bool,
+  /// Block after which `lock` is ignored: its holder can no longer be waiting on any reply, so
+  /// it trapped or ran out of gas after an await and anyone may resume.
+  lock_expires_at: u32,
+  pair: actor_id,
+  pair_created_by_us: bool,
+  wvara_is_token0: bool,
+  wrapped: bool,
+  liquidity_added: bool,
+  /// Our own (token, LP) balances read just before our AddLiquidity was sent. Only our
+  /// deposit can lower the first and raise the second at once, so a resume after a lost reply
+  /// tells from them whether it landed; reserves are moved by anyone and are not trusted.
+  pre_add_balances: opt struct { u256, u256 },
+  /// wVARA / tokens this launch may deposit after AlignPrice (its swap moves value between them).
+  wvara_budget: u256,
+  token_budget: u256,
+  lp_burned: u256,
+  roles_renounced: bool,
+  created_at: u32,
+  ready_at: u32,
+  fail_reason: str,
+  fail_retryable: bool,
+  /// Block of the first failure since the last completed step. Failed retries keep it, so an
+  /// early unwind waits `graduation_timeout_blocks` from here whatever the retry traffic.
+  failed_since: opt u32,
+  /// Frozen at creation, like the fees: an admin change cannot shorten a live launch's wait.
+  graduation_timeout_blocks: u32,
+  addrs: Addrs,
+  terms_hash: [u8, 32],
+  fee_bps: u16,
+  creator_fee_bps: u16,
+};
+
+type LaunchState = enum {
+  Trading,
+  Ready,
+  Graduating,
+  Graduated,
+  Failed,
+  Aborted,
+};
+
+/// A trade whose VFT transfer is in flight. The curve state has already been moved; the
+/// snapshot lets a failed transfer revert it exactly.
+type PendingTrade = struct {
+  side: Side,
+  trader: actor_id,
+  seq: u64,
+  vara_gross: u128,
+  vara_net: u128,
+  fee_creator: u128,
+  fee_protocol: u128,
+  tokens: u256,
+  prev_virtual_vara: u256,
+  prev_virtual_tokens: u256,
+  prev_real_remaining: u256,
+  prev_escrow: u128,
+  stuck: bool,
+  /// Block after which the sending message can no longer be waiting on the transfer reply, so
+  /// a trade still in flight was abandoned (its continuation trapped) and may be reconciled.
+  expires_at: u32,
+};
+
+type Quote = struct {
+  side: Side,
+  amount_in: u256,
+  amount_out: u256,
+  fee_vara: u128,
+  price_after_e18: u256,
+  completes_curve: bool,
+  refund_vara: u128,
+};
+
+constructor {
+  New : (config: Config);
+};
+
+service Launchpad {
+  Buy : (token: actor_id, min_tokens_out: u256, deadline_block: u32) -> result (TradeReceipt, LaunchpadError);
+  /// Pays the creator in the reply itself, which reaches a program caller too.
+  ClaimCreatorFees : (token: actor_id) -> result (u128, LaunchpadError);
+  /// Pays out what is pending for the caller (deferred sell proceeds, bounced sends) in the
+  /// reply itself, so it reaches a program caller too. `token` zero holds refunds of launches
+  /// that failed to spawn.
+  ClaimPayout : (token: actor_id) -> result (u128, LaunchpadError);
+  /// Anyone may trigger it; the fees always go to the launch's treasury. Called by the treasury
+  /// itself they come in the reply (which works for a program treasury, e.g. a multisig);
+  /// otherwise they are sent, and a send that bounces waits for the treasury's `ClaimPayout`.
+  ClaimProtocolFees : (token: actor_id) -> result (u128, LaunchpadError);
+  /// Runs exactly one graduation step. Permissionless; the keeper loops it until `Done`.
+  Graduate : (token: actor_id) -> result (GradStep, LaunchpadError);
+  /// Spawns a new VFT with the launchpad as its only admin, minter and burner and opens its
+  /// curve. Any attached value is the creator's first buy (the voucher only covers gas).
+  Launch : (meta: TokenMeta, terms_hash: [u8, 32], first_buy_min_tokens_out: u256) -> result (actor_id, LaunchpadError);
+  /// Resolves a trade whose transfer reply timed out by reading the VFT balance the launchpad
+  /// actually holds. Anyone may call it.
+  Reconcile : (token: actor_id) -> result (bool, LaunchpadError);
+  Sell : (token: actor_id, amount: u256, min_vara_out: u128, deadline_block: u32) -> result (TradeReceipt, LaunchpadError);
+  SetAddresses : (addrs: Addrs) -> null;
+  SetAdmin : (admin: actor_id) -> null;
+  SetFees : (fee_bps: u16, creator_fee_bps: u16, graduation_fee_vara: u128) -> null;
+  SetGas : (gas: GasConfig) -> null;
+  SetLimits : (min_trade_vara: u128, min_free_balance: u128, graduation_timeout_blocks: u32, launch_cooldown_blocks: u32) -> null;
+  SetPausedBuys : (paused: bool) -> null;
+  SetRaiseTarget : (raise_target_vara: u128) -> null;
+  SetVftCodeId : (code_id: code_id) -> null;
+  /// Accepts value to top up the operating reserve that pays child-program deposits.
+  TopUpReserve : () -> u128;
+  /// Pulls the pool VARA back out of wVARA after a failed or stale graduation and reopens
+  /// sells at the frozen curve. Buys stay closed for good.
+  Unwind : (token: actor_id) -> result (null, LaunchpadError);
+  query Admin : () -> actor_id;
+  query Config : () -> Config;
+  query FreeBalance : () -> u128;
+  query LaunchCount : () -> u32;
+  query LaunchInfo : (token: actor_id) -> opt Launch;
+  /// Every launch, oldest first. Grows with the program; prefer `LaunchesPage`.
+  query Launches : () -> vec actor_id;
+  /// Up to `limit` (at most `MAX_PAGE`) launches from position `offset`, oldest first.
+  query LaunchesPage : (offset: u32, limit: u32) -> vec actor_id;
+  query NameTaken : (name: str) -> bool;
+  query PendingPayout : (token: actor_id, who: actor_id) -> u128;
+  query QuoteBuy : (token: actor_id, vara_in: u128) -> Quote;
+  query QuoteSell : (token: actor_id, tokens_in: u256) -> Quote;
+  query TotalLiabilities : () -> u128;
+
+  events {
+    Launched: struct {
+      token: actor_id,
+      creator: actor_id,
+      name: str,
+      symbol: str,
+      decimals: u8,
+      description: str,
+      image: str,
+      v0: u256,
+      t0: u256,
+      curve_supply: u256,
+      pool_tokens: u256,
+      raise_target_vara: u128,
+      fee_bps: u16,
+      creator_fee_bps: u16,
+      terms_hash: [u8, 32],
+    };
+    Bought: struct {
+      token: actor_id,
+      seq: u64,
+      trader: actor_id,
+      vara_in: u128,
+      fee: u128,
+      tokens_out: u256,
+      sold_after: u256,
+      escrow_after: u128,
+      price_after_e18: u256,
+    };
+    Sold: struct {
+      token: actor_id,
+      seq: u64,
+      trader: actor_id,
+      tokens_in: u256,
+      fee: u128,
+      vara_out: u128,
+      deferred: bool,
+      sold_after: u256,
+      escrow_after: u128,
+      price_after_e18: u256,
+    };
+    Ready: struct {
+      token: actor_id,
+      escrow: u128,
+      pool_vara: u128,
+    };
+    TradeStuck: struct {
+      token: actor_id,
+      seq: u64,
+    };
+    Reconciled: struct {
+      token: actor_id,
+      seq: u64,
+      committed: bool,
+    };
+    GraduationStep: struct {
+      token: actor_id,
+      step: GradStep,
+    };
+    GraduationFailed: struct {
+      token: actor_id,
+      step: GradStep,
+      reason: str,
+      retryable: bool,
+    };
+    ImbalancedListing: struct {
+      token: actor_id,
+      pair: actor_id,
+      reserve0: u256,
+      reserve1: u256,
+    };
+    Graduated: struct {
+      token: actor_id,
+      pair: actor_id,
+      wvara_in_pool: u128,
+      tokens_in_pool: u256,
+      lp_burned: u256,
+      roles_renounced: bool,
+    };
+    Unwound: struct {
+      token: actor_id,
+      escrow: u128,
+    };
+    FeesClaimed: struct {
+      token: actor_id,
+      to: actor_id,
+      amount: u128,
+      creator: bool,
+    };
+    PayoutClaimed: struct {
+      token: actor_id,
+      to: actor_id,
+      amount: u128,
+    };
+  }
+};
+

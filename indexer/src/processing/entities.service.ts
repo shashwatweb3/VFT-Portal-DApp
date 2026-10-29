@@ -1,6 +1,9 @@
 import {
   AccountBalance,
   Coin,
+  CurveCandle,
+  CurveLaunch,
+  CurveTrade,
   Factory,
   MemcoinFactoryEvent,
   Transfer,
@@ -21,12 +24,18 @@ export class EntitiesService {
 
   async init() {
     const factory = await this.storage.getFactory();
-    const dnsAddress = await this.dnsService.getAddressByName(
-      config.dnsProgramName
-    );
-    if (dnsAddress && factory.address !== dnsAddress) {
-      factory.address = dnsAddress;
-      await this.setFactory(factory);
+    if (config.dnsApiUrl === "off") return;
+    try {
+      const dnsAddress = await this.dnsService.getAddressByName(
+        config.dnsProgramName
+      );
+      if (dnsAddress && factory.address !== dnsAddress) {
+        factory.address = dnsAddress;
+        await this.setFactory(factory);
+      }
+    } catch (e) {
+      // An unreachable DNS API must not stop indexing; keep the configured address.
+      console.warn(`[entities] DNS lookup failed, keeping ${factory.address}`, e);
     }
   }
 
@@ -95,6 +104,28 @@ export class EntitiesService {
       await this.storage.updateAccountBalance(balance);
       this.batchService.addBalanceUpdate(balance);
     }
+  }
+
+  async getCurveLaunch(token: string): Promise<CurveLaunch | undefined> {
+    return this.storage.getCurveLaunch(token);
+  }
+
+  setCurveLaunch(launch: CurveLaunch) {
+    this.storage.updateCurveLaunch(launch);
+    this.batchService.addCurveLaunch(launch);
+  }
+
+  addCurveTrade(trade: CurveTrade) {
+    this.batchService.addCurveTrade(trade);
+  }
+
+  async getCurveCandle(id: string): Promise<CurveCandle | undefined> {
+    return this.storage.getCurveCandle(id);
+  }
+
+  setCurveCandle(candle: CurveCandle) {
+    this.storage.updateCurveCandle(candle);
+    this.batchService.addCurveCandle(candle);
   }
 
   async addEvent(event: Omit<MemcoinFactoryEvent, "factory" | "id">) {
