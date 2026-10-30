@@ -8,6 +8,7 @@ import { useCallback } from 'react'
 import { SailsProgram } from './meme-ft'
 import { TransactionBuilder } from 'sails-js'
 import { useAuth } from '../hooks/use-auth'
+import { assertWritesEnabled } from '../staging'
 
 export enum MessageTypes {
 	TRANSFER_TO_USERS = 'transferToUsers',
@@ -41,6 +42,7 @@ const executeTransaction = async (
 	account: Account,
 	alert: AlertContainerFactory
 ) => {
+	assertWritesEnabled()
 	transaction.withAccount(account.address, { signer: account.signer })
 	await transaction.calculateGas()
 

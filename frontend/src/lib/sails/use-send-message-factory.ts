@@ -9,6 +9,7 @@ import { useCallback } from 'react'
 import { SailsProgram, Init } from './meme-factory'
 import { ActorId, TransactionBuilder } from 'sails-js'
 import { useAuth } from '../hooks/use-auth'
+import { assertWritesEnabled } from '../staging'
 
 export enum MessageTypes {
 	CREATE_FUNGIBLE_PROGRAM = 'createFungibleProgram',
@@ -19,6 +20,7 @@ const executeTransaction = async (
 	account: Account,
 	alert: AlertContainerFactory
 ) => {
+	assertWritesEnabled()
 	transaction.withAccount(account.address, { signer: account.signer })
 	transaction.withValue(BigInt(1e12))
 	await transaction.calculateGas(true, 10)

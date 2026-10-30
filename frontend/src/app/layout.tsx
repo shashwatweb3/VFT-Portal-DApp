@@ -5,7 +5,9 @@ import { Header } from '@/components/layouts/base/header'
 import { ReactNode } from 'react'
 import { GearApiProvider } from '@/components/providers/gear-api'
 import { AnalyticsConsent } from '@/components/common/consent/consent-banner'
+import { StagingBanner } from '@/components/common/staging-banner'
 import { CURVE_ENABLED } from '@/lib/consts'
+import { getRequestHost, isStagingHost } from '@/lib/staging'
 
 const GTM_ID = 'GTM-PRHTXR49'
 
@@ -33,7 +35,7 @@ const siteConfig = {
 	name: 'Tokenator',
 }
 
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
 	title: {
 		default: CURVE_ENABLED ? 'Tokenator 2.0 - Launch a token on Vara' : 'Tokenator - Deploy a VFT on Vara',
 		template: `%s | ${siteConfig.name}`,
@@ -42,6 +44,21 @@ export const metadata: Metadata = {
 		CURVE_ENABLED
 			? 'Launch a token on Vara on a bonding curve. When the curve sells out it graduates to RivrDEX with the LP tokens burned.'
 			: 'Deploy a VFT smart contract to Vara Network in minutes. No code. Yours forever. After launch, list your token on RivrDEX - the native DEX on Vara Network.',
+}
+
+const isStagingBranch =
+	process.env.VERCEL_ENV === 'preview' &&
+	process.env.VERCEL_GIT_COMMIT_REF === 'staging-next'
+
+export async function generateMetadata(): Promise<Metadata> {
+	if (!isStagingBranch) return baseMetadata
+
+	const { headers } = await import('next/headers')
+	const host = getRequestHost(await headers())
+
+	return isStagingHost(host)
+		? { ...baseMetadata, robots: { index: false, follow: false } }
+		: baseMetadata
 }
 
 export default function RootLayout({
@@ -57,6 +74,7 @@ export default function RootLayout({
 			className={`${silkscreen.variable} ${poppins.variable} ${pressStart2P.variable}`}
 		>
 			<body className="flex min-h-screen flex-col font-ps2p [--header-height:5.625rem] sm:[--header-height:4.375rem] lg:[--header-height:6.25rem]">
+				<StagingBanner />
 				<GearApiProvider>
 					<Header />
 				</GearApiProvider>

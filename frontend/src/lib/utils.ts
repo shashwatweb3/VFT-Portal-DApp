@@ -3,6 +3,7 @@ import { AlertContainerFactory } from '@gear-js/react-hooks'
 import clsx, { ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { ADDRESS } from './consts'
+import { assertWritesEnabled } from './staging'
 
 export const copyToClipboard = async ({
 	alert,
@@ -85,6 +86,7 @@ export const getGatewayUrl = (ipfsUrl: string) => {
 }
 
 export const uploadToIpfs = async (files: File[]) => {
+	assertWritesEnabled()
 	const formData = new FormData()
 	files.forEach((file) => formData.append('file', file))
 

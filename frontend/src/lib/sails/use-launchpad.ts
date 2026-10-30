@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/hooks/use-auth'
 import { LaunchpadProgram, type Launch, type Quote, type TokenMeta, type TradeReceipt } from './launchpad'
 import { SailsProgram as VftProgram } from './meme-ft'
 import { termsHash } from '@/lib/curve'
+import { assertWritesEnabled } from '@/lib/staging'
 
 export const launchpadEnabled = () => LAUNCHPAD.ADDRESS.length === 66
 
@@ -55,6 +56,7 @@ async function run<T>(
 	account: Signer,
 	opts: { value?: bigint; voucher?: HexString } = {}
 ): Promise<T> {
+	assertWritesEnabled()
 	tx.withAccount(account.address, { signer: account.signer as never })
 	if (opts.value && opts.value > BigInt(0)) tx.withValue(opts.value)
 	if (opts.voucher) tx.withVoucher(opts.voucher)
@@ -112,6 +114,7 @@ export const useLaunchpad = () => {
 
 	const launch = useCallback(
 		async (meta: TokenMeta, firstBuy: bigint, minTokensOut: bigint): Promise<LaunchResult> => {
+			assertWritesEnabled()
 			const { account, program } = requireAccount()
 			const voucher = api ? await getVoucher(api, account.address) : undefined
 			const hash = await termsHash(LAUNCHPAD.TERMS_VERSION)
